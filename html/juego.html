@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Carcassonne</title>
+<link rel="icon" type="image/png" href="../img/favicon-c.png">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<style>
+.player-card {
+	border: 0;
+	border-radius: 1.25rem;
+	overflow: hidden;
+	box-shadow: 0 12px 30px rgba(15,23,42,.11);
+	transition: transform .18s ease, box-shadow .18s ease;
+}
+.subtitulo{
+	text-shadow: 2px 2px black;
+}
+.player-color-bar {
+	height: 12px;
+	background: var(--player-color);
+}
+.color-dot {
+	width: 1.5rem;
+	height: 1.5rem;
+	border-radius: 999px;
+	display: inline-block;
+	background: var(--player-color);
+	box-shadow: 0 0 0 4px rgba(0,0,0,.05);
+}
+.log-panel{
+	max-height:300px;
+	overflow:auto
+}
+.hero {
+	background: linear-gradient(135deg, #111827, #243b67);
+	color: white;
+	border-radius: 0.5rem;
+	box-shadow: 0 18px 55px rgba(17,24,39,.22);
+}
+.timer{
+	font-size:2rem;
+	font-weight:bold
+}
+.bg-image2 {
+    background-image:url("../img/portada.png");
+	background-size: 100%;
+	background-position: 65% 40%;
+    background-repeat: no-repeat;
+}
+</style>
+</head>
+<body class="bg-light">
+<div class="container py-3">
+	<section class="hero d-flex p-md-3 mb-3 bg-image2">
+		<div class="col-md-12">
+			<div class="d-flex justify-content-between pb-3">
+				<img src="../img/carcassonne_logo2.png" style="width: 20%; height: 20%;">
+				<h1 class="	"><span class="text-white subtitulo">Tablero de puntuación</span></h1>
+			</div>
+			<div class="mb-3 d-flex gap-2 flex-wrap">
+				<button class="btn btn-light shadow-lg" onclick="nuevaPartida()">
+					<i class="bi bi-plus-square fs-5"></i> Nueva partida
+				</button>
+				<button class="btn btn-light shadow-lg" data-bs-toggle="collapse" data-bs-target="#playerPanel">
+					<i class="bi bi-person-plus fs-5"></i> Agregar jugador
+				</button>
+				<button class="btn btn-light shadow-lg" data-bs-toggle="collapse" data-bs-target="#tempoPanel">
+					<i class="bi bi-stopwatch fs-5"></i> Apúrele
+				</button>
+				<button class="btn btn-light shadow-lg" onclick="verMapa()">
+					<i class="bi bi-pin-map fs-5"></i> Avance
+				</button>
+				<button class="btn btn-light shadow-lg" data-bs-toggle="collapse" data-bs-target="#logPanel">
+					<i class="bi bi-card-list fs-5"></i> Log
+				</button>
+				<div class="btn-group" role="group">
+					<button type="button" class="btn btn btn-light dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+						<i class="bi bi-file-earmark-check fs-5"></i> Partida
+					</button>
+					<ul class="dropdown-menu">
+						<li><a class="dropdown-item" href="javascript:guardarPartida();">Guardar partida</a></li>
+						<li><a class="dropdown-item" href="javascript:cargarPartida();">Cargar partida</a></li>
+					</ul>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<div class="collapse" id="playerPanel">
+		<div class="card mb-3">
+			<div class="card-body">
+				<div class="row g-2">
+					<div class="col-md-5 fw-semibold">Nombre del jugador</div>
+					<div class="col-md-2 fw-semibold">Color</div>
+					<div class="col-md-2"></div>
+				</div>
+				<div class="row g-2">
+					<div class="col-md-5"><input id="nombreJugador" class="form-control" placeholder=""></div>
+					<div class="col-md-2">
+					  <select class="form-select" id="colorJugador"></select>
+					</div>		
+					<div class="col-md-1">
+						<button class="btn btn-success w-100" onclick="agregarJugador()">
+							<i class="bi bi-person-plus fs-5"></i>
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	
+	<div class="collapse card mb-3" id="tempoPanel">
+		<div class="card-body text-center">
+			<div class="d-flex justify-content-center gap-4">
+				<div>
+					<div class="fw-semibold">Temporizador</div>
+					<div id="timer" class="timer">00:25</div>
+				</div>
+				<div class="d-flex gap-2">
+					<button class="btn btn-light border" onclick="startTimer()">Iniciar<br><i class="bi bi-caret-right-fill"></i></button>
+					<button class="btn btn-light border" onclick="stopTimer()">Pausar<br><i class="bi bi-pause-fill"></i></button>
+					<button class="btn btn-light border" onclick="resetTimer()">Reiniciar<br><i class="bi bi-arrow-repeat"></i></button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div id="players" class="row"></div>
+	
+	<div class="collapse" id="logPanel">
+		<div class="card mb-3">
+			<div class="card-header d-flex justify-content-between">
+				<span class="fw-semibold">Log: asignación de puntos</span>
+				<button class="btn btn-warning btn-sm" onclick="undo()">UNDO</button>
+			</div>
+			<div id="log" class="list-group list-group-flush log-panel"></div>
+		</div>
+	</div>
+</div>
+
+<script>
+const COLORES = [
+    { valor: "#FAFAF9", nombre: "⚪ Blanco" },
+    { valor: "#D6D3D1", nombre: "🔘 Gris" },
+    { valor: "#000000", nombre: "⚫ Negro" },
+    { valor: "#FFDF20", nombre: "🟡 Amarillo" },
+    { valor: "#FE9A37", nombre: "🟠 Naranja" },
+    { valor: "#894B0A", nombre: "🟤 Café" },
+    { valor: "#155DFC", nombre: "🔵 Azul" },
+    { valor: "#2AA63E", nombre: "🟢 Verde" },
+    { valor: "#A300A3", nombre: "🟣 Morado" },
+    { valor: "#E7180B", nombre: "🔴 Rojo" },
+    { valor: "#FDA5D5", nombre: "⭕ Rosado" },
+	{ valor: "#FF00FF", nombre: "🩷 Fucsia" }
+];
+
+//crea la lista de colores,
+function generarOpcionesColor(colorSeleccionado = "") {
+    return COLORES.map(c => `
+        <option
+            value="${c.valor}"
+            ${c.valor === colorSeleccionado ? "selected" : ""}
+        >
+            ${c.nombre}
+        </option>
+    `).join("");
+
+}
+
+document.getElementById("colorJugador").innerHTML = generarOpcionesColor();
+</script>
+<script>
+const STORAGE_KEY = 'partidaMesa';
+const state={jugadores:[],historial:[],undoStack:[],fileHandle:null};
+let timerInterval=null;
+let remaining=25;
+
+//agrega un nuevo jugador a la partida
+function agregarJugador(){
+ const nombre=document.getElementById('nombreJugador').value.trim();
+ const color=document.getElementById('colorJugador').value;
+
+ if(!nombre) return alert('Nombre requerido');
+ if(state.jugadores.length>=15) return alert('Máximo 15 jugadores');
+
+ if(state.jugadores.some(j=>j.nombre.toLowerCase()===nombre.toLowerCase()))
+  return alert('Nombre repetido');
+
+ if(state.jugadores.some(j=>j.color===color))
+  return alert('Color repetido');
+
+ state.jugadores.push({
+   id:Date.now(),
+   nombre,color,puntos:0,tela:0,barril:0,espiga:0
+ });
+ 
+ document.getElementById('nombreJugador').value = "";
+
+ saveLocal();
+ render();
+}
+
+//guarda partida en navegador
+function saveLocal(){
+ localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
+}
+
+//elimina un jugador del tablero
+function eliminarJugador(id, nombre){
+ const jugador = state.jugadores.find(x => x.id === id);
+
+ if(!jugador) return;
+
+ if(!confirm(`¿Eliminar a ${jugador.nombre}?`)){
+   return;
+ }
+
+ //borra historial de jugador
+ state.historial = state.historial.filter(x => x.jugador.trim().toLowerCase() !== nombre.trim().toLowerCase());
+ //borra undoStack de jugador
+ state.undoStack = state.undoStack.filter(x => x.jugadorId !== id);
+ //borra jugador
+ state.jugadores = state.jugadores.filter(x => x.id !== id);
+ 
+ saveLocal();
+ render();
+ renderLog();
+ 
+ if(state.jugadores.length === 0){
+  document.querySelector('[data-bs-target="#playerPanel"]').click();
+ }
+}
+
+//edita los datos de un jugador (nombre y color)
+function editarJugador2(id){
+ const j=state.jugadores.find(x=>x.id===id);
+ 
+ const nombre=document.getElementById('editNombreJugador_'+id).value;
+ if(!nombre) return;
+ 
+ const color=document.getElementById('editColorJugador_'+id).value;
+ if(!color) return;
+
+ if(state.jugadores.some(x=>x.id!==id && x.nombre.trim().toLowerCase() === nombre.toLowerCase().trim())){
+	return alert('Nombre repetido');
+ }
+ 
+ if(state.jugadores.some(x=>x.id!==id && x.color.trim() === color.trim())){
+	return alert('Color repetido');
+ }
+
+ j.nombre=nombre;
+ j.color=color;
+
+ saveLocal();
+ render();
+}
+
+//borra los datos de la partida para iniciar una nueva
+function nuevaPartida(){
+
+ if(!confirm("¿Desea iniciar una nueva partida? Se perderán los puntos y el historial actual.")){
+   return;
+ }
+ 
+ document.querySelector('[data-bs-target="#playerPanel"]').click();
+ 
+ state.jugadores = [];
+ state.historial = [];
+ state.undoStack = [];
+
+ clearInterval(timerInterval);
+ document.getElementById('timer').textContent = '00:25';
+
+ saveLocal();
+ render();
+ renderLog();
+}
+
+//registra la puntuacion de un jugador (parte 1)
+function accionJugador(id,v){
+ puntos(id,v);
+ 
+ //inicia timer
+ /*if(document.getElementById('timerEnabled').checked){
+   startTimer();
+ }*/
+}
+
+//registra la puntuacion de un jugador (parte 2)
+function puntos(id,v){
+ const j=state.jugadores.find(x=>x.id===id);
+ j.puntos+=v;
+ registrar(j,"PUNTOS",v);
+ render();
+}
+
+//registra puntos (barriles, espigas y telas)
+function recurso(id,tipo,operacion){
+ const j=state.jugadores.find(x=>x.id===id);
+ if(operacion=="mas") j[tipo]++;
+ if(operacion=="menos" && j[tipo]>0) j[tipo]--;
+ registrar(j,tipo.toUpperCase(),1);
+ render();
+}
+
+//incrementa contadores contadores (puntos y recursos)
+function registrar(jugador,tipo,valor){
+ state.historial.unshift({
+   fecha:new Date().toLocaleTimeString(),
+   jugador:jugador.nombre,
+   tipo,valor
+ });
+
+ state.undoStack.push({
+   jugadorId:jugador.id,
+   tipo,valor
+ });
+
+ renderLog();
+ saveLocal();
+}
+
+//carga los datos de la ultima partida guardada localmente
+function loadLocal(){
+ const s=localStorage.getItem(STORAGE_KEY);
+ if(!s) return;
+ Object.assign(state,JSON.parse(s));
+ render();
+ renderLog();
+}
+
+//deshace una asignación de puntos
+function undo(){
+ const a=state.undoStack.pop();
+ if(!a) return;
+
+ const j=state.jugadores.find(x=>x.id===a.jugadorId);
+ if(!j) return;
+
+ if(a.tipo==="PUNTOS"){
+   j.puntos-=a.valor;
+ }else{
+   j[a.tipo.toLowerCase()]--;
+ }
+
+ state.historial.shift();
+
+ render();
+ renderLog();
+ saveLocal();
+}
+
+//redirecciona a la pagina del mapa de puntos
+function verMapa(){
+	console.log(state.jugadores)
+	const url = "mapaPuntos.html?jugadores="+encodeURIComponent(JSON.stringify(state.jugadores));
+	window.location.href = url;
+}
+
+//inicia timer
+function startTimer(){
+ if(timerInterval){
+   return;
+ }
+ timerInterval = setInterval(()=>{
+   remaining--;
+   const m = String(Math.floor(remaining/60)).padStart(2,'0');
+   const s = String(remaining%60).padStart(2,'0');
+   document.getElementById('timer').textContent = `${m}:${s}`;
+
+   if(remaining <= 0){
+     clearInterval(timerInterval);
+     timerInterval = null;
+
+     beep();
+   }
+ }, 1000);
+}
+
+//sonido cuando finaliza el timer
+function beep(){
+ startTimer()
+ const ctx=new (window.AudioContext||window.webkitAudioContext)();
+ const osc=ctx.createOscillator();
+ osc.connect(ctx.destination);
+ osc.start();
+ osc.stop(ctx.currentTime+0.2);
+}
+
+//detiene el timer
+function stopTimer(){
+ clearInterval(timerInterval);
+ timerInterval = null;
+}
+
+//reinicia el timer
+function resetTimer(){
+ clearInterval(timerInterval);
+ timerInterval = null;
+ remaining = 25;
+ document.getElementById('timer').textContent = '00:25';
+}
+
+//guarda datos de partida en un archivo (Funciona para Chrome y Edge)
+async function guardarPartida(){
+  const data = JSON.stringify({
+    fecha: new Date().toISOString(),
+    jugadores: state.jugadores,
+    historial: state.historial
+  }, null, 2);
+
+  try {
+    if (window.showSaveFilePicker) {
+      if (!state.fileHandle) {
+        state.fileHandle = await window.showSaveFilePicker({
+          suggestedName: "partida.json",
+          types: [{
+            description: "JSON file",
+            accept: { "application/json": [".json"] }
+          }]
+        });
+      }
+      if (state.fileHandle.createWritable) {
+        const writable = await state.fileHandle.createWritable();
+        await writable.write(data);
+        await writable.close();
+        console.log("Guardado con File System Access API");
+      } else {
+        // fallback si createWritable no existe
+        const blob = new Blob([data], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'partida.json';
+        a.click();
+        console.log("Guardado con descarga directa..");
+      }
+    } else {
+      // fallback total
+      const blob = new Blob([data], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'partida.json';
+      a.click();
+      console.log("Guardado con descarga directa....");
+    }
+  } catch (e) {
+    console.error("Error al guardar:", e);
+  }
+}
+
+//carga la partida de datos desde un archivo json previamente generado.
+async function cargarPartida() {
+	if(state.jugadores.length > 0 &&
+		!confirm("La partida actual será reemplazada. ¿Desea continuar?")){
+		return;
+	}
+
+    try {
+        let file;
+
+        // Chrome / Edge modernos
+        if (window.showOpenFilePicker) {
+            const [handle] = await window.showOpenFilePicker({
+                multiple: false,
+                types: [{
+                    description: "Archivo de partida",
+                    accept: {
+                        "application/json": [".json"]
+                    }
+                }]
+            });
+            file = await handle.getFile();
+        } else {
+
+            // Fallback para otros navegadores
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = ".json";
+
+            input.onchange = async (e) => {
+                const archivo = e.target.files[0];
+                if (!archivo) return;
+                await procesarArchivoPartida(archivo);
+            };
+
+            input.click();
+            return;
+        }
+        await procesarArchivoPartida(file);
+    } catch (error) {
+        if (error.name !== "AbortError") {
+            console.error(error);
+            alert("No fue posible cargar la partida.");
+        }
+    }
+}
+async function procesarArchivoPartida(file) {
+
+    const texto = await file.text();
+    const data = JSON.parse(texto);
+
+    // Validación mínima
+    if (!Array.isArray(data.jugadores)) {
+        throw new Error("El archivo no contiene jugadores.");
+    }
+
+    if (!Array.isArray(data.historial)) {
+        throw new Error("El archivo no contiene historial.");
+    }
+
+    // Limpiar estado actual
+    state.jugadores = [];
+    state.historial = [];
+    state.undoStack = [];
+
+    // Cargar datos
+    state.jugadores = data.jugadores;
+    state.historial = data.historial;
+
+    saveLocal();
+
+    render();
+    renderLog();
+
+    alert(
+        `Partida cargada correctamente.\n\n` +
+        `Jugadores: ${state.jugadores.length}\n` +
+        `Eventos: ${state.historial.length}`
+    );
+}
+
+//organiza la lista de jugadores de mayor a menor puntuacion
+function sortPlayers(players) {
+	state.jugadores = [...players].sort((a, b) => b.puntos - a.puntos);
+	saveLocal()
+	return state.jugadores
+	//return [...players].sort((a, b) => b.puntos - a.puntos);
+}
+
+//resalta los recursos de mayor existencia
+function resaltarMayorRecursos(telas, barriles, espigas){	
+	//telas
+	let mayorTelas = telas[0];
+	for (const item of telas) {
+		if (item.valor > mayorTelas.valor) {
+			mayorTelas = item;
+		}
+	}
+	if(mayorTelas.valor > 0){
+		const elemento = document.getElementById("t_"+mayorTelas.id);
+		elemento.style.backgroundColor = "lightgreen";
+	}
+
+	//barriles
+	let mayorBarriles = barriles[0];
+	for (const item of barriles) {
+		if (item.valor > mayorBarriles.valor) {
+			mayorBarriles = item;
+		}
+	}
+	if(mayorBarriles.valor > 0){
+		const elemento = document.getElementById("b_"+mayorBarriles.id);
+		elemento.style.backgroundColor = "lightgreen";
+	}
+
+	//espigas
+	let mayorEspigas = espigas[0];
+	for (const item of espigas) {
+		if (item.valor > mayorEspigas.valor) {
+			mayorEspigas = item;
+		}
+	}
+	if(mayorEspigas.valor > 0){
+		const elemento = document.getElementById("e_"+mayorEspigas.id);
+		elemento.style.backgroundColor = "lightgreen";
+	}
+}
+
+//pinta las card de los jugadores
+function render(){
+ const c=document.getElementById('players');
+ c.innerHTML='';
+
+ state.jugadores.forEach(j=>{
+ if(!j)return
+ 
+ c.innerHTML+=`
+ <div class="col-md-4 mb-3">
+	<div class="card player-card" style="--player-color: ${j.color}">
+		<div class="player-color-bar"></div>
+		<div class="card-body">
+			
+			<div class="d-flex mb-3">
+				<div class="col-9">
+					<div class="d-flex align-items-center gap-2">
+						<span class="material-icons color-dot">account_circle</span>
+						<h3 class="h4 fw-bold mb-0">${j.nombre}</h3>
+					</div>
+					<div class="small-muted">Posición -</div>
+				</div>
+				<div class="col-3 text-center"><h1>${j.puntos}</h1></div>
+			</div>
+			
+			<div class="d-flex flex-wrap gap-2 mb-3">
+				<button class="btn btn-outline-secondary shadow" onclick="accionJugador(${j.id},-1)">-1</button>
+				<button class="btn btn-primary shadow" onclick="accionJugador(${j.id},1)">+1</button>
+				<button class="btn btn-primary shadow" onclick="accionJugador(${j.id},3)">+3</button>
+				<button class="btn btn-primary shadow" onclick="accionJugador(${j.id},4)">+4</button>
+				<button class="btn btn-primary shadow" onclick="accionJugador(${j.id},5)">+5</button>
+				<button class="btn btn-primary shadow" onclick="accionJugador(${j.id},10)">+10</button>
+			</div>
+			<div class="d-flex flex-wrap gap-4">
+				<div class="">
+					<span class="h4"><img src="../img/seda2.png" width="35" height="35" id="t_${j.id}"> ${j.tela}</span><br>
+					<div class="btn-group">
+						<button class="btn btn-sm btn-light fw-bold border" onclick="recurso(${j.id},'tela','menos')"><i class="bi bi-dash"></i></button>
+						<button class="btn btn-sm btn-light fw-bold border" onclick="recurso(${j.id},'tela','mas')"><i class="bi bi-plus-lg"></i></button>
+					</div>
+				</div>
+				<div class="">
+					<span class="h4"><img src="../img/barril2.png" width="35" height="35" id="b_${j.id}"> ${j.barril}</span><br>
+					<div class="btn-group">
+						<button class="btn btn-sm btn-light fw-bold border" onclick="recurso(${j.id},'barril','menos')"><i class="bi bi-dash"></i></button>
+						<button class="btn btn-sm btn-light fw-bold border" onclick="recurso(${j.id},'barril','mas')"><i class="bi bi-plus-lg"></i></button>
+					</div>
+				</div>
+				<div class="">
+					<span class="h4"><img src="../img/espiga2.png" width="35" height="35" id="e_${j.id}"> ${j.espiga}</span><br>
+					<div class="btn-group"> 
+						<button class="btn btn-sm btn-light fw-bold border" onclick="recurso(${j.id},'espiga','menos')"><i class="bi bi-dash"></i></button>
+						<button class="btn btn-sm btn-light fw-bold border" onclick="recurso(${j.id},'espiga','mas')"><i class="bi bi-plus-lg"></i></button>
+					</div>
+				</div>
+			</div>
+			<div class="d-flex flex-column flex-lg-row justify-content-between gap-4 align-items-lg-center">
+				<div class="">
+					<button class="btn btn-secondary btn-sm mt-2 d-none elBoton" onclick="render_sort()">
+						<i class="bi bi-sort-down-alt"></i>Posiciones
+					</button>
+				</div>
+				<div class="d-flex flex-wrap gap-2">
+					<div class="dropup">
+					  <button class="btn btn-secondary btn-sm mt-2 dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside">
+						Edición
+					  </button>
+					  <form class="dropdown-menu p-2">
+						<div class="mb-2">
+						  <span class="fw-normal">Nombre:</span>
+						  <input type="input" class="form-control" id="editNombreJugador_${j.id}" value="${j.nombre}">
+						</div>
+						<div class="mb-2">
+						  <span class="fw-normal">Color:</span>
+						  <select class="form-select" id="editColorJugador_${j.id}">
+							${generarOpcionesColor(j.color)}
+						  </select>
+						</div>
+						<button type="submit" class="btn btn-success btn-sm" onclick="editarJugador2(${j.id})">Editar</button>						
+					  </form>
+					</div>
+					<button class="btn btn-sm btn-outline-danger mt-2" onclick="eliminarJugador(${j.id}, '${j.nombre}')"><i class="bi bi-x-lg"></i></button>
+				</div>
+			</div>
+		</div>
+	</div>
+ </div>`;
+ });
+ 
+ // querySelector solo selecciona el PRIMER elemento que coincida con la clase
+ const primerBoton = document.querySelector('.elBoton');
+    
+ if (primerBoton) {
+   // Removemos d-none para que se vuelva visible
+   primerBoton.classList.remove('d-none');
+ }
+}
+
+//pinta las card de los jugadores ordenados por posicion
+function render_sort(){
+ const c=document.getElementById('players');
+ c.innerHTML='';
+ 
+ let telas = [];
+ let barriles = [];
+ let espigas = [];
+
+ //entrega el arreglo ordenado
+ sortPlayers(state.jugadores).forEach((j, index) => {
+ 
+ //guarda la cantidad de recursos de caga jugador
+ telas.push({ id: j.id, valor: j['tela'] });
+ barriles.push({ id: j.id, valor: j['barril'] });
+ espigas.push({ id: j.id, valor: j['espiga'] });
+ 
+ if(!j)return
+ 
+ c.innerHTML+=`
+ <div class="col-md-4 mb-3">
+	<div class="card player-card" style="--player-color: ${j.color}">
+		<div class="player-color-bar"></div>
+		<div class="card-body">
+			
+			<div class="d-flex mb-3">
+				<div class="col-9">
+					<div class="d-flex align-items-center gap-2">
+						<span class="material-icons color-dot">account_circle</span>
+						<h3 class="h4 fw-bold mb-0">${j.nombre}</h3>
+					</div>
+					<div class="small-muted">Posición ${index + 1}</div>
+				</div>
+				<div class="col-3 text-center"><h1>${j.puntos}</h1></div>
+			</div>
+			
+			<div class="d-flex flex-wrap gap-2 mb-3">
+				<button class="btn btn-outline-secondary shadow" onclick="accionJugador(${j.id},-1)">-1</button>
+				<button class="btn btn-primary shadow" onclick="accionJugador(${j.id},1)">+1</button>
+				<button class="btn btn-primary shadow" onclick="accionJugador(${j.id},3)">+3</button>
+				<button class="btn btn-primary shadow" onclick="accionJugador(${j.id},4)">+4</button>
+				<button class="btn btn-primary shadow" onclick="accionJugador(${j.id},5)">+5</button>
+				<button class="btn btn-primary shadow" onclick="accionJugador(${j.id},10)">+10</button>
+			</div>
+			<div class="d-flex flex-wrap gap-4">
+				<div class="">
+					<span class="h4"><img src="../img/seda2.png" width="35" height="35" id="t_${j.id}"> ${j.tela}</span><br>
+					<div class="btn-group">
+						<button class="btn btn-sm btn-light fw-bold border" onclick="recurso(${j.id},'tela','menos')"><i class="bi bi-dash"></i></button>
+						<button class="btn btn-sm btn-light fw-bold border" onclick="recurso(${j.id},'tela','mas')"><i class="bi bi-plus-lg"></i></button>
+					</div>
+				</div>
+				<div class="">
+					<span class="h4"><img src="../img/barril2.png" width="35" height="35" id="b_${j.id}"> ${j.barril}</span><br>
+					<div class="btn-group">
+						<button class="btn btn-sm btn-light fw-bold border" onclick="recurso(${j.id},'barril','menos')"><i class="bi bi-dash"></i></button>
+						<button class="btn btn-sm btn-light fw-bold border" onclick="recurso(${j.id},'barril','mas')"><i class="bi bi-plus-lg"></i></button>
+					</div>
+				</div>
+				<div class="">
+					<span class="h4"><img src="../img/espiga2.png" width="35" height="35" id="e_${j.id}"> ${j.espiga}</span><br>
+					<div class="btn-group"> 
+						<button class="btn btn-sm btn-light fw-bold border" onclick="recurso(${j.id},'espiga','menos')"><i class="bi bi-dash"></i></button>
+						<button class="btn btn-sm btn-light fw-bold border" onclick="recurso(${j.id},'espiga','mas')"><i class="bi bi-plus-lg"></i></button>
+					</div>
+				</div>
+			</div>
+			<div class="d-flex flex-column flex-lg-row justify-content-between gap-4 align-items-lg-center">
+				<div class="">
+					<button class="btn btn-warning btn-sm mt-2 d-none elBoton" onclick="render_sort()">
+						<i class="bi bi-sort-down-alt"></i>Posiciones
+					</button>
+				</div>
+				<div class="d-flex flex-wrap gap-2">
+					<div class="dropup">
+					  <button class="btn btn-secondary btn-sm mt-2 dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside">
+						Edición
+					  </button>
+					  <form class="dropdown-menu p-2">
+						<div class="mb-2">
+						  <span class="fw-normal">Nombre:</span>
+						  <input type="input" class="form-control" id="editNombreJugador_${j.id}" value="${j.nombre}">
+						</div>
+						<div class="mb-2">
+						  <span class="fw-normal">Color:</span>
+						  <select class="form-select" id="editColorJugador_${j.id}">
+							<option selected disabled>Color...</option>
+							${generarOpcionesColor(j.color)}
+						  </select>
+						</div>
+						<button type="submit" class="btn btn-success btn-sm" onclick="editarJugador2(${j.id})">Editar</button>						
+					  </form>
+					</div>
+					<button class="btn btn-sm btn-outline-danger mt-2" onclick="eliminarJugador(${j.id}, '${j.nombre}')"><i class="bi bi-x-lg"></i></button>
+				</div>
+			</div>
+		</div>
+	</div>
+ </div>`;
+ });
+ 
+ // querySelector solo selecciona el PRIMER elemento que coincida con la clase. Esto es para pintar el boton de "ordenar sposiciones".
+ const primerBoton = document.querySelector('.elBoton');
+ if (primerBoton) {
+   // Removemos d-none para que se vuelva visible
+   primerBoton.classList.remove('d-none');
+ }
+ 
+ //resalta los recursos de mayor existencia en los jugadores
+ resaltarMayorRecursos(telas, barriles, espigas);
+}
+
+
+//pinta log
+function renderLog(){
+ const log=document.getElementById('log');
+ log.innerHTML='';
+
+ state.historial.forEach(x=>{
+  log.innerHTML+=`<div class="list-group-item">${x.fecha} - ${x.jugador} - ${x.tipo} (${x.valor})</div>`;
+ });
+}
+
+window.addEventListener("load", () => {
+	loadLocal();
+	
+	if(state.jugadores.length === 0){
+		document.querySelector('[data-bs-target="#playerPanel"]').click();
+	}
+});
+</script>
+
+</body>
+</html>
