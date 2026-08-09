@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Carcassonne</title>
+	<link rel="icon" type="image/png" href="../img/favicon-c.png">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+	<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+	html,
+	body {
+		height: 100%;
+		margin: 0;
+	}
+	.app-container {
+		height: 100vh;
+		display: flex;
+	}
+	.legend-panel-L {
+		border-right: 1px solid #dee2e6;
+		background-color: #EBF6F9;
+		overflow-y: auto;
+	}
+	.legend-panel-Ljugadores {
+		width: 230px;
+		min-width: 230px;
+		padding: 18px;
+		background-color: #;
+		overflow-y: auto;
+	}
+	.legend-panel-R {
+		width: 230px;
+		min-width: 230px;
+		padding: 10px;
+		border-left: 1px solid #dee2e6;
+		background-color: #EBF6F9;
+
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
+	.imagen-lateral {
+		height: 18%;
+		width: auto;
+		transform: rotate(-90deg);
+	}
+	.image-panel {
+		flex: 1;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		overflow: hidden;
+		background-color: #ffffff;
+		position: relative;
+	}
+	.image-panel img {
+		width: 100%;
+		height: 100%;
+	}
+	#mapaContainer {
+		position: relative;
+		/*border: 3px solid red;*/
+		display: inline-block;
+	}
+	#mapa {
+		display: block;
+	}
+	.player-item {
+		padding: 8px;
+		margin-bottom: 8px;
+		border-radius: 6px;
+		background-color: white;
+		border: 1px solid #dee2e6;
+	}
+	.ficha {
+		position: absolute;
+		width: 25px;
+		height: 25px;
+		border-radius: 50%;
+		border: 2px solid white;
+		transform: translate(-50%, -50%);
+		/*box-shadow: 0 0 0 2px black, 0 0 12px rgba(0,0,0,0.5);*/
+		animation: pulsoFicha 1.5s infinite;
+	}
+	.ficha::after {
+		content: "";
+		position: absolute;
+		inset: 0;
+		border-radius: 50%;
+		animation: haloFicha 1.5s infinite;
+	}
+	@keyframes pulsoFicha {
+		0% { transform: translate(-50%, -50%) scale(1); }
+		50% { transform: translate(-50%, -50%) scale(1.25); }
+		100% { transform: translate(-50%, -50%) scale(1); }
+	}
+	@keyframes haloFicha {
+		0% { box-shadow: 0 0 0 0 rgba(255,255,255,0.9); }
+		100% { box-shadow: 0 0 0 20px rgba(255,255,255,0); }
+	}
+	.punto-prueba {
+		position: absolute;
+		width: 12px;
+		height: 12px;
+		background-color: lime;
+		border: 1px solid black;
+		border-radius: 50%;
+		transform: translate(-50%, -50%);
+		z-index: 1000;
+	}
+	.etiqueta-punto {
+		position: absolute;
+		font-size: 10px;
+		font-weight: bold;
+		color: black;
+		transform: translate(8px, -8px);
+		z-index: 1001;
+	}
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <!-- Leyenda -->
+	<div class="legend-panel-L">
+		<h4 class=" mt-3 text-center">
+			Jugadores
+		</h4>
+		<div class="legend-panel-Ljugadores">
+			<div id="listaJugadores"></div>
+			<h4 class="mb-3 mt-3 text-center">
+				<a href="javascript:history.back()"><i class="bi bi-arrow-left-square"></i></a><span class="h5"> Volver</span>
+			</h4>
+		</div>
+	</div>
+    <!-- Tablero -->
+	<div class="image-panel">
+		<div id="mapaContainer">
+			<img id="mapa" src="../img/mapaPuntos.png" alt="Mapa">
+		</div>
+	</div>
+    <!-- Derecha -->
+    <div class="legend-panel-R">
+		<img src="../img/carcassonne_logo2.png" alt="carcassonne" class="imagen-lateral">
+    </div>
+</div>
+
+<script>
+//coordenadas div mapaContainer en tamaño "normal"
+const ANCHO_REFERENCIA = 1460;
+const ALTO_REFERENCIA = 1014;
+
+//coordenadas de posiciones de casillas (segun div mapaContainer en tamaño "normal")
+const POSICIONES = [
+{x:1317, y:843.4375},
+{x:1098, y:869.4375},
+{x:959, y:854.4375},
+{x:809, y:859.4375},
+{x:677, y:852.4375},
+{x:547, y:866.4375},
+{x:409, y:871.4375},
+{x:256, y:893.4375},
+{x:117, y:834.4375},
+{x:97, y:685.4375},
+{x:90, y:563.4375},
+{x:98, y:421.4375},
+{x:96, y:292.4375},
+{x:95, y:140.4375},
+{x:216, y:89.4375},
+{x:336, y:83.4375},
+{x:452, y:75.4375},
+{x:566, y:79.4375},
+{x:678, y:89.4375},
+{x:786, y:94.4375},
+{x:899, y:95.4375},
+{x:1006, y:87.4375},
+{x:1119, y:97.4375},
+{x:1218, y:84.4375},
+{x:1364, y:80.4375},
+{x:1395, y:199.4375},
+{x:1359, y:306.4375},
+{x:1223, y:333.4375},
+{x:1124, y:317.4375},
+{x:1028, y:324.4375},
+{x:931, y:338.4375},
+{x:831, y:329.4375},
+{x:726, y:335.4375},
+{x:612, y:326.4375},
+{x:523, y:325.4375},
+{x:423, y:317.4375},
+{x:327, y:352.4375},
+{x:294, y:446.4375},
+{x:352, y:540.4375},
+{x:450, y:578.4375},
+{x:549, y:580.4375},
+{x:647, y:520.4375},
+{x:753, y:515.4375},
+{x:853, y:548.4375},
+{x:952, y:509.4375},
+{x:1052, y:514.4375},
+{x:1163, y:510.4375},
+{x:1266, y:492.4375},
+{x:1373, y:536.4375},
+{x:1360, y:655.4375}
+];
+
+//lista de posiciones o casillas usadas
+let casillasEnUso = []
+
+//renderiza la informacion que viene de la URL sobre los jugadores 
+window.addEventListener("load", () => {
+    renderizarLeyenda();
+    crearFichas();
+    renderizarJugadores();
+});
+window.addEventListener("resize", () => {
+    renderizarJugadores();
+});
+
+//obtiene info de jugadores que viene en la URL
+function obtenerJugadores() {
+    const params = new URLSearchParams(window.location.search);
+    const jugadoresParam = params.get("jugadores");
+
+    if (!jugadoresParam) {
+        return [];
+    }
+
+    try {
+        return JSON.parse(
+            decodeURIComponent(jugadoresParam)
+        );
+    }
+    catch(error) {
+        console.error(error);
+        return [];
+    }
+}
+
+//pinta las fichas de los jugadores en el mapa
+function renderizarJugadores() {
+	let index = 0
+	casillasEnUso = []
+    const jugadores = obtenerJugadores();
+    jugadores.forEach(jugador => {
+		
+        const ficha = document.getElementById("jugador_" + jugador.id);
+
+        if (!ficha) { return; }
+		
+		const casilla = obtenerCasilla(jugador.puntos);
+		casillasEnUso.push(casilla)
+		let index = contarRepeticiones(casillasEnUso, casilla);
+		moverFicha(ficha.id, casilla, index);
+    });
+}
+function contarRepeticiones(lista, numeroBuscado) {
+    return lista.filter(num => num === numeroBuscado).length;
+}
+
+//obtiene la casilla o posicion del mapa, segun los puntos que tenga el jugador.
+/*Ejemplos: 0 -> casilla 0 , 49 -> casilla 49 , 50  -> casilla 0 , 51 -> casilla 1
+            99 -> casilla 49 , 100 -> casilla 0 , 209 -> casilla 9                 */
+function obtenerCasilla(puntos) {
+	if(puntos < 0) return 0
+    const totalCasillas = POSICIONES.length;
+    //return ((puntos % totalCasillas) + totalCasillas) % totalCasillas;
+	return puntos % totalCasillas;
+}
+
+//mueve la ficha a la posicion deseada
+function moverFicha(idFicha, casilla, indice) {
+	const escalaX = mapaContainer.clientWidth / ANCHO_REFERENCIA;
+    const escalaY = mapaContainer.clientHeight / ALTO_REFERENCIA;
+    
+	const ficha = document.getElementById(idFicha);
+	
+    ficha.style.left = ((POSICIONES[casilla].x * escalaX) + offset(indice).x) + "px";
+    ficha.style.top  = ((POSICIONES[casilla].y * escalaX) + offset(indice).y) + "px";
+}
+//offset de posicion
+function offset(i){
+	const offsets = [
+		{x:0,y:0},
+		{x:18,y:0},
+		{x:-18,y:0},
+		{x:0,y:18},
+		{x:0,y:-18},
+		{x:18,y:18},
+		{x:18,y:-18},
+		{x:-18,y:18},
+		{x:-18,y:-18}
+	];
+	return offsets[i];
+}
+
+//crea las fichas de juego
+function crearFichas() {	
+    const mapaContainer = document.getElementById("mapaContainer");
+    const jugadores = obtenerJugadores();
+
+    jugadores.forEach(jugador => {
+        const ficha = document.createElement("div");
+        ficha.id = "jugador_" + jugador.id;
+        ficha.className = "ficha";
+		ficha.style.backgroundColor = jugador.color;
+        mapaContainer.appendChild(ficha);
+    });
+}
+
+//renderiza leyenda izquieda
+function renderizarLeyenda() {
+
+    const contenedor = document.getElementById("listaJugadores");
+    contenedor.innerHTML = "";
+
+    const jugadores = obtenerJugadores();
+    jugadores.forEach(jugador => {
+	
+		const vueltas = Math.trunc(jugador.puntos / POSICIONES.length)
+	
+        const item = document.createElement("div");
+        item.className = "player-item";
+        item.innerHTML = `
+            <div class="d-flex align-items-center justify-content-between">
+				<div>
+					<span style="
+					display:inline-block;
+					width:20px;
+					height:20px;
+					border-radius:50%;
+					background:${jugador.color};
+					border:1px solid #000;
+					margin-right:8px;">
+					</span> 
+					<span class="fs-5">${jugador.nombre}
+				</div>
+				<div><span class="h4" class="float-end">${jugador.puntos}</span> (${vueltas})</div>
+			</div>
+        `;
+        contenedor.appendChild(item);
+    });
+}
+</script>
+
+<script>
+/*
+//DEVELOPER
+//marca coordenadas punto rojo con un clic
+//Esto es para obtener los puntos del arreglo de posiciones[]
+document.getElementById("mapaContainer").addEventListener("click", e => {
+
+    const rect = e.currentTarget.getBoundingClientRect();
+
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    console.log(`{x:${x}, y:${y}}`);
+
+    const ficha = document.getElementById("jugadorRojo");
+
+    ficha.style.left = x + "px";
+    ficha.style.top  = y + "px";
+});
+*/
+
+/*
+//DEVELOPER
+//obtiene coordenadas de div mapaContainer despues de hacer un resize
+//Esto es para sacar el ANCHO_REFERENCIA y el ALTO_REFERENCIA
+window.addEventListener(
+    "load",
+    revisarSizeDiv
+);
+window.addEventListener(
+    "resize",
+    revisarSizeDiv
+);
+function revisarSizeDiv(){
+	const mapaContainer = document.getElementById("mapaContainer");
+	console.log(
+		mapaContainer.clientWidth,
+		mapaContainer.clientHeight
+	);
+}
+*/
+
+/*
+//DEVELOPER
+//Dibuja las coordenadas de la lista de posiciones con un punto verde
+//Esto es para verificar que la coordenada de la posicion esté bien posicionada.
+function dibujarPosiciones() {
+    const mapaContainer = document.getElementById("mapaContainer");
+
+    // Eliminar pruebas anteriores
+    document.querySelectorAll(".punto-prueba, .etiqueta-punto").forEach(e => e.remove());
+
+	//pinta puntos
+    const escalaX = mapaContainer.clientWidth / ANCHO_REFERENCIA;
+    const escalaY = mapaContainer.clientHeight / ALTO_REFERENCIA;
+
+    POSICIONES.forEach((posicion, indice) => {
+        const punto = document.createElement("div");
+        punto.className = "punto-prueba";
+        punto.style.left = (posicion.x * escalaX) + "px";
+        punto.style.top = (posicion.y * escalaY) + "px";
+        mapaContainer.appendChild(punto);
+        //const etiqueta = document.createElement("div");
+        //etiqueta.className = "etiqueta-punto";
+        //etiqueta.innerText = indice;
+        //etiqueta.style.left = (posicion.x * escalaX) + "px";
+        //etiqueta.style.top = (posicion.y * escalaY) + "px";
+        //mapaContainer.appendChild(etiqueta);
+    });
+}
+
+window.addEventListener("load", () => {
+    dibujarPosiciones();
+});
+window.addEventListener("resize", () => {
+    dibujarPosiciones();
+});
+*/
+</script>
+
+</body>
+</html>
