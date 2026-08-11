@@ -545,41 +545,54 @@ function sortPlayers(players) {
 
 //resalta los recursos de mayor existencia
 function resaltarMayorRecursos(telas, barriles, espigas){	
-	//telas
-	let mayorTelas = telas[0];
-	for (const item of telas) {
-		if (item.valor > mayorTelas.valor) {
-			mayorTelas = item;
-		}
-	}
-	if(mayorTelas.valor > 0){
-		const elemento = document.getElementById("t_"+mayorTelas.id);
-		elemento.style.backgroundColor = "lightgreen";
-	}
-
-	//barriles
-	let mayorBarriles = barriles[0];
-	for (const item of barriles) {
-		if (item.valor > mayorBarriles.valor) {
-			mayorBarriles = item;
-		}
-	}
-	if(mayorBarriles.valor > 0){
-		const elemento = document.getElementById("b_"+mayorBarriles.id);
-		elemento.style.backgroundColor = "lightgreen";
-	}
-
-	//espigas
-	let mayorEspigas = espigas[0];
-	for (const item of espigas) {
-		if (item.valor > mayorEspigas.valor) {
-			mayorEspigas = item;
-		}
-	}
-	if(mayorEspigas.valor > 0){
-		const elemento = document.getElementById("e_"+mayorEspigas.id);
-		elemento.style.backgroundColor = "lightgreen";
-	}
+	//------telas------
+    let mayorValorTelas = telas[0].valor;
+    // Encontrar el mayor valor
+    for (const item of telas) {
+        if (item.valor > mayorValorTelas) {
+            mayorValorTelas = item.valor;
+        }
+    }
+    // Obtener todas las telas que tienen el mayor valor
+    const mayorTelas = telas.filter(item => item.valor === mayorValorTelas);
+    if (mayorValorTelas > 0) {
+        for (const tela of mayorTelas) {
+            const elemento = document.getElementById("t_" + tela.id);
+            elemento.style.backgroundColor = "#F4CCCC";
+        }
+    }
+	//------barriles------
+    let mayorValorBarriles = barriles[0].valor;
+    // Encontrar el mayor valor
+    for (const item of barriles) {
+        if (item.valor > mayorValorBarriles) {
+            mayorValorBarriles = item.valor;
+        }
+    }
+    // Obtener todos los barriles que tienen el mayor valor
+    const mayorBarriles = barriles.filter(item => item.valor === mayorValorBarriles);
+    if (mayorValorBarriles > 0) {
+        for (const barril of mayorBarriles) {
+            const elemento = document.getElementById("b_" + barril.id);
+            elemento.style.backgroundColor = "#E6D5C3";
+        }
+    }
+	//------espigas------
+    let mayorValorEspigas = espigas[0].valor;
+    // Encontrar el mayor valor
+    for (const item of espigas) {
+        if (item.valor > mayorValorEspigas) {
+            mayorValorEspigas = item.valor;
+        }
+    }
+    // Obtener todas las espigas que tienen el mayor valor
+    const mayorEspigas = espigas.filter(item => item.valor === mayorValorEspigas);
+    if (mayorValorEspigas > 0) {
+        for (const espiga of mayorEspigas) {
+            const elemento = document.getElementById("e_" + espiga.id);
+            elemento.style.backgroundColor = "#FFF59D";
+        }
+    }
 }
 
 //pinta las card de los jugadores
