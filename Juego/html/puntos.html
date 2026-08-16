@@ -146,6 +146,11 @@
 	gap: .75rem;
 	flex-wrap: wrap;
 }
+#playerPanel.collapsing,
+#tempoPanel.collapsing,
+#logPanel.collapsing {
+	transition: none !important;
+}
 @media (min-width: 992px) {
 	.hero-header {
 		justify-content: space-between;
@@ -324,6 +329,42 @@
 	</div>
 </div>
 
+<div class="modal fade" id="nuevaPartidaModal" tabindex="-1" aria-labelledby="nuevaPartidaModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-dialog-centered">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="nuevaPartidaModalLabel">Iniciar nueva partida</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+			</div>
+			<div class="modal-body">
+				¿Desea iniciar una nueva partida? Se perderán los puntos y el historial actual.
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+				<button type="button" class="btn btn-danger" onclick="confirmarNuevaPartida()">Sí, iniciar nueva</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" id="eliminarJugadorModal" tabindex="-1" aria-labelledby="eliminarJugadorModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-dialog-centered">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="eliminarJugadorModalLabel">Eliminar jugador</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+			</div>
+			<div class="modal-body">
+				¿Eliminar a <span id="eliminarJugadorNombre" class="fw-semibold"></span>? Esta acción no se puede deshacer.
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+				<button type="button" class="btn btn-danger" onclick="confirmarEliminarJugador()">Sí, eliminar</button>
+			</div>
+		</div>
+	</div>
+</div>
+
 <script>
 const COLORES = [
     { valor: "#FAFAF9", nombre: "⚪ Blanco" },
@@ -360,6 +401,7 @@ const STORAGE_KEY = 'partidaMesa';
 const state={jugadores:[],historial:[],undoStack:[],fileHandle:null,sortAscendingNext:false,sortActive:false};
 let timerInterval=null;
 let remaining=25;
+let pendingDeletePlayerId=null;
 
 //agrega un nuevo jugador a la partida
 function agregarJugador(){
@@ -392,25 +434,52 @@ function saveLocal(){
 }
 
 //elimina un jugador del tablero
-function eliminarJugador(id, nombre){
+function eliminarJugador(id){
  const jugador = state.jugadores.find(x => x.id === id);
 
  if(!jugador) return;
 
- if(!confirm(`¿Eliminar a ${jugador.nombre}?`)){
-   return;
- }
+	pendingDeletePlayerId = id;
+	const nombreEl = document.getElementById('eliminarJugadorNombre');
+	if(nombreEl){
+		nombreEl.textContent = jugador.nombre;
+	}
+
+	const modalEl = document.getElementById('eliminarJugadorModal');
+	if(!modalEl) return;
+	const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+	modal.show();
+}
+
+function confirmarEliminarJugador(){
+	if(pendingDeletePlayerId==null) return;
+	const id = pendingDeletePlayerId;
+	const jugador = state.jugadores.find(x => x.id === id);
+
+	if(!jugador) {
+		pendingDeletePlayerId = null;
+		return;
+	}
+
+	const modalEl = document.getElementById('eliminarJugadorModal');
+	const modal = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
 
  //borra historial de jugador
- state.historial = state.historial.filter(x => x.jugador.trim().toLowerCase() !== nombre.trim().toLowerCase());
+ state.historial = state.historial.filter(x => x.jugador.trim().toLowerCase() !== jugador.nombre.trim().toLowerCase());
  //borra undoStack de jugador
- state.undoStack = state.undoStack.filter(x => x.jugadorId !== id);
+ state.undoStack = state.undoStack.filter(x => x.jugadorId !== jugador.id);
  //borra jugador
- state.jugadores = state.jugadores.filter(x => x.id !== id);
+ state.jugadores = state.jugadores.filter(x => x.id !== jugador.id);
+
+	pendingDeletePlayerId = null;
  
  saveLocal();
  render();
  renderLog();
+
+	if(modal){
+		modal.hide();
+	}
  
  if(state.jugadores.length === 0){
   document.querySelector('[data-bs-target="#playerPanel"]').click();
@@ -444,25 +513,34 @@ function editarJugador2(id){
 
 //borra los datos de la partida para iniciar una nueva
 function nuevaPartida(){
+	const modalEl = document.getElementById('nuevaPartidaModal');
+	if(!modalEl) return;
+	const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+	modal.show();
+}
 
- if(!confirm("¿Desea iniciar una nueva partida? Se perderán los puntos y el historial actual.")){
-   return;
- }
- 
- document.querySelector('[data-bs-target="#playerPanel"]').click();
- 
- state.jugadores = [];
- state.historial = [];
- state.undoStack = [];
- state.sortActive = false;
- state.sortAscendingNext = false;
+function confirmarNuevaPartida(){
+	const modalEl = document.getElementById('nuevaPartidaModal');
+	const modal = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
 
- clearInterval(timerInterval);
- document.getElementById('timer').textContent = '00:25';
+	document.querySelector('[data-bs-target="#playerPanel"]').click();
 
- saveLocal();
- render();
- renderLog();
+	state.jugadores = [];
+	state.historial = [];
+	state.undoStack = [];
+	state.sortActive = false;
+	state.sortAscendingNext = false;
+
+	clearInterval(timerInterval);
+	document.getElementById('timer').textContent = '00:25';
+
+	saveLocal();
+	render();
+	renderLog();
+
+	if(modal){
+		modal.hide();
+	}
 }
 
 //registra la puntuacion de un jugador (parte 1)
@@ -871,7 +949,7 @@ function render(){
 						<button type="submit" class="btn btn-success btn-sm" onclick="editarJugador2(${j.id})">Editar</button>						
 					  </form>
 					</div>
-					<button class="btn btn-sm btn-outline-danger mt-2" onclick="eliminarJugador(${j.id}, '${j.nombre}')"><i class="bi bi-x-lg"></i></button>
+					<button class="btn btn-sm btn-outline-danger mt-2" onclick="eliminarJugador(${j.id})"><i class="bi bi-x-lg"></i></button>
 				</div>
 			</div>
 		</div>
@@ -973,7 +1051,7 @@ function render_sort(keepCurrentOrder = false){
 						<button type="submit" class="btn btn-success btn-sm" onclick="editarJugador2(${j.id})">Editar</button>						
 					  </form>
 					</div>
-					<button class="btn btn-sm btn-outline-danger mt-2" onclick="eliminarJugador(${j.id}, '${j.nombre}')"><i class="bi bi-x-lg"></i></button>
+					<button class="btn btn-sm btn-outline-danger mt-2" onclick="eliminarJugador(${j.id})"><i class="bi bi-x-lg"></i></button>
 				</div>
 			</div>
 		</div>
@@ -1032,6 +1110,17 @@ window.addEventListener("load", () => {
 		playerPanel.addEventListener('shown.bs.collapse', syncPlayerPanelIcon);
 		playerPanel.addEventListener('hidden.bs.collapse', syncPlayerPanelIcon);
 		syncPlayerPanelIcon();
+	}
+
+	const eliminarJugadorModal = document.getElementById('eliminarJugadorModal');
+	if (eliminarJugadorModal) {
+		eliminarJugadorModal.addEventListener('hidden.bs.modal', () => {
+			pendingDeletePlayerId = null;
+			const nombreEl = document.getElementById('eliminarJugadorNombre');
+			if (nombreEl) {
+				nombreEl.textContent = '';
+			}
+		});
 	}
 });
 </script>
