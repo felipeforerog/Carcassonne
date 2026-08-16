@@ -57,10 +57,6 @@
 	height: auto;
 	flex: 0 0 auto;
 }
-.top-actions {
-	row-gap: .5rem;
-	column-gap: .5rem;
-}
 .top-action-group {
 	gap: .5rem;
 	flex-wrap: wrap;
@@ -172,29 +168,6 @@
 .player-action-btn .bi {
 	font-size: 1.1rem;
 }
-.score-card-grid {
-	margin-top: .5rem;
-}
-.player-stats-row {
-	gap: 1rem;
-	flex-wrap: wrap;
-}
-.player-score-box {
-	min-width: 5rem;
-	text-align: center;
-}
-.player-resource-wrap {
-	gap: 1rem;
-	flex-wrap: wrap;
-}
-.player-actions-row {
-	gap: .75rem;
-	flex-wrap: wrap;
-}
-.player-edit-row {
-	gap: .75rem;
-	flex-wrap: wrap;
-}
 #playerPanel.collapsing,
 #tempoPanel.collapsing,
 #logPanel.collapsing {
@@ -241,9 +214,6 @@
 		width: 40vw;
 		min-width: 96px;
 	}
-	.player-score-box {
-		width: 100%;
-	}
 	.player-card .card-body {
 		padding: 1rem;
 	}
@@ -288,12 +258,7 @@
 			<div class="d-flex top-action-group hero-actions">
 				<button class="btn btn-light shadow-lg top-action-button" onclick="nuevaPartida()" aria-label="Nueva partida">
 					<i class="bi bi-plus-square fs-5"></i> <span class="top-action-label">Nueva partida</span>
-				</button>
-				<!--
-				<button class="btn btn-light shadow-lg" data-bs-toggle="collapse" data-bs-target="#playerPanel">
-					<i class="bi bi-person-plus fs-5"></i> Agregar jugador <i id="playerPanelIcon" class="bi bi-chevron-down ms-1"></i>
-				</button>
-				-->
+				</button>				
 				<button class="btn btn-light shadow-lg top-action-button" data-bs-toggle="collapse" data-bs-target="#tempoPanel" aria-label="Apúrele">
 					<i class="bi bi-stopwatch fs-5"></i> <span class="top-action-label">Apúrele</span>
 				</button>
@@ -321,8 +286,8 @@
 			<button class="btn btn-sm btn-outline-dark shadow-sm" data-bs-toggle="collapse" data-bs-target="#playerPanel" aria-controls="playerPanel" aria-expanded="false">
 				<i class="bi bi-person-plus"></i> Agregar jugador <i id="playerPanelToggleIcon" class="bi bi-chevron-down ms-1"></i>
 			</button>
-			<button class="btn btn-sm btn-outline-dark shadow-sm d-none elBoton" onclick="render_sort()">
-				<i id="sortOrderIcon" class="bi bi-sort-down-alt"></i> Ordenar
+			<button class="btn btn-sm btn-outline-dark shadow-sm sortToggleButton" onclick="render_sort()">
+				<i id="sortOrderIcon" class="bi bi-sort-down-alt"></i> <span id="sortToggleLabel">Mayor a menor</span>
 			</button>
 		</div>
 	</div>
@@ -527,12 +492,19 @@ document.getElementById("colorJugador").innerHTML = generarOpcionesColor();
 const STORAGE_KEY = 'partidaMesa';
 const OPEN_PICKER_ID = 'carcassonne-partida-open';
 const SAVE_PICKER_ID = 'carcassonne-partida-save';
-const state={jugadores:[],historial:[],undoStack:[],fileHandle:null,sortAscendingNext:false,sortActive:false};
-let timerInterval=null;
-let remaining=25;
-let pendingDeletePlayerId=null;
-let pendingEditPlayerId=null;
-let lastPickerHandle=null;
+const state = {
+	jugadores: [],
+	historial: [],
+	undoStack: [],
+	fileHandle: null,
+	sortAscendingNext: false,
+	sortActive: false
+};
+let timerInterval = null;
+let remaining = 25;
+let pendingDeletePlayerId = null;
+let pendingEditPlayerId = null;
+let lastPickerHandle = null;
 
 //agrega un nuevo jugador a la partida
 function agregarJugador(){
@@ -705,18 +677,15 @@ function confirmarNuevaPartida(){
 //registra la puntuacion de un jugador (parte 1)
 function accionJugador(id,v){
  puntos(id,v);
- 
- //inicia timer
- /*if(document.getElementById('timerEnabled').checked){
-   startTimer();
- }*/
 }
 
 //registra la puntuacion de un jugador (parte 2)
 function puntos(id,v){
  const j=state.jugadores.find(x=>x.id===id);
- j.puntos+=v;
- registrar(j,"PUNTOS",v);
+ j.puntos += v;
+ state.sortActive = true;
+ state.sortAscendingNext = true;
+ registrar(j, "PUNTOS", v);
  render();
 }
 
@@ -776,11 +745,10 @@ function undo(){
  saveLocal();
 }
 
-//redirecciona a la pagina del mapa de puntos
-function verMapa(){
-	console.log(state.jugadores)
-	const url = "mapaPuntos.html?jugadores="+encodeURIComponent(JSON.stringify(state.jugadores));
-	window.location.href = url;
+function formatTimerText(seconds) {
+ const minutes = String(Math.floor(seconds / 60)).padStart(2, '0');
+ const remainingSeconds = String(seconds % 60).padStart(2, '0');
+ return `${minutes}:${remainingSeconds}`;
 }
 
 //inicia timer
@@ -790,9 +758,7 @@ function startTimer(){
  }
  timerInterval = setInterval(()=>{
    remaining--;
-   const m = String(Math.floor(remaining/60)).padStart(2,'0');
-   const s = String(remaining%60).padStart(2,'0');
-   document.getElementById('timer').textContent = `${m}:${s}`;
+   document.getElementById('timer').textContent = formatTimerText(remaining);
 
    if(remaining <= 0){
      clearInterval(timerInterval);
@@ -805,12 +771,11 @@ function startTimer(){
 
 //sonido cuando finaliza el timer
 function beep(){
- startTimer()
- const ctx=new (window.AudioContext||window.webkitAudioContext)();
- const osc=ctx.createOscillator();
+ const ctx = new (window.AudioContext || window.webkitAudioContext)();
+ const osc = ctx.createOscillator();
  osc.connect(ctx.destination);
  osc.start();
- osc.stop(ctx.currentTime+0.2);
+ osc.stop(ctx.currentTime + 0.2);
 }
 
 //detiene el timer
@@ -824,7 +789,7 @@ function resetTimer(){
  clearInterval(timerInterval);
  timerInterval = null;
  remaining = 25;
- document.getElementById('timer').textContent = '00:25';
+ document.getElementById('timer').textContent = formatTimerText(remaining);
 }
 
 //guarda datos de partida en un archivo (Funciona para Chrome y Edge)
@@ -867,7 +832,6 @@ async function guardarPartida(){
         await writable.write(data);
         await writable.close();
 		lastPickerHandle = state.fileHandle;
-        console.log("Guardado con File System Access API");
       } else {
         // fallback si createWritable no existe
         const blob = new Blob([data], { type: 'application/json' });
@@ -875,7 +839,6 @@ async function guardarPartida(){
         a.href = URL.createObjectURL(blob);
         a.download = 'partida.json';
         a.click();
-        console.log("Guardado con descarga directa..");
       }
     } else {
       // fallback total
@@ -884,7 +847,6 @@ async function guardarPartida(){
       a.href = URL.createObjectURL(blob);
       a.download = 'partida.json';
       a.click();
-      console.log("Guardado con descarga directa....");
     }
   } catch (e) {
     console.error("Error al guardar:", e);
@@ -1016,15 +978,22 @@ function sortPlayers(players, ascending = false) {
 }
 
 function syncSortButton() {
-	const sortButton = document.querySelector('.elBoton');
 	const sortIcon = document.getElementById('sortOrderIcon');
+	const sortButton = document.querySelector('.sortToggleButton');
+	const sortLabel = document.getElementById('sortToggleLabel');
+
+	const isAscending = state.sortAscendingNext;
 
 	if (sortButton) {
-		sortButton.classList.remove('d-none');
+		sortButton.title = isAscending ? 'Orden ascendente' : 'Orden descendente';
+	}
+
+	if (sortLabel) {
+		sortLabel.textContent = isAscending ? 'Menor a mayor' : 'Mayor a menor';
 	}
 
 	if (sortIcon) {
-		sortIcon.className = state.sortAscendingNext ? 'bi bi-sort-up-alt' : 'bi bi-sort-down-alt';
+		sortIcon.className = isAscending ? 'bi bi-sort-up-alt' : 'bi bi-sort-down-alt';
 	}
 }
 
@@ -1080,20 +1049,8 @@ function resaltarMayorRecursos(telas, barriles, espigas){
     }
 }
 
-//pinta las card de los jugadores
-function render(){
- if(state.sortActive){
-  render_sort(true);
-  return;
- }
-
- const c=document.getElementById('players');
- c.innerHTML='';
-
- state.jugadores.forEach(j=>{
- if(!j)return
-
-	 c.innerHTML+=`
+function playerCardHtml(j, posicionTexto = '-') {
+ return `
 	 <div>
 	<div class="card player-card" style="--player-color: ${j.color}">
 		<div class="player-color-bar"></div>
@@ -1105,92 +1062,7 @@ function render(){
 						<span class="material-icons color-dot">account_circle</span>
 						<h3 class="h4 fw-bold mb-0">${j.nombre}</h3>
 					</div>
-					<div class="small-muted">Posición -</div>
-				</div>
-				<div class="col-3 text-center"><h1>${j.puntos}</h1></div>
-			</div>
-			
-			<div class="d-flex flex-wrap gap-2 mb-3">
-				<button class="btn btn-outline-secondary shadow" onclick="accionJugador(${j.id},-1)">-1</button>
-				<button class="btn btn-primary shadow" onclick="accionJugador(${j.id},1)">+1</button>
-				<button class="btn btn-primary shadow" onclick="accionJugador(${j.id},3)">+3</button>
-				<button class="btn btn-primary shadow" onclick="accionJugador(${j.id},4)">+4</button>
-				<button class="btn btn-primary shadow" onclick="accionJugador(${j.id},5)">+5</button>
-				<button class="btn btn-primary shadow" onclick="accionJugador(${j.id},10)">+10</button>
-			</div>
-			<div class="d-flex flex-wrap gap-4">
-				<div class="">
-					<span class="h4"><img src="../img/seda2.png" width="35" height="35" id="t_${j.id}"> ${j.tela}</span><br>
-					<div class="btn-group">
-						<button class="btn btn-sm btn-light fw-bold border" onclick="recurso(${j.id},'tela','menos')"><i class="bi bi-dash"></i></button>
-						<button class="btn btn-sm btn-light fw-bold border" onclick="recurso(${j.id},'tela','mas')"><i class="bi bi-plus-lg"></i></button>
-					</div>
-				</div>
-				<div class="">
-					<span class="h4"><img src="../img/barril2.png" width="35" height="35" id="b_${j.id}"> ${j.barril}</span><br>
-					<div class="btn-group">
-						<button class="btn btn-sm btn-light fw-bold border" onclick="recurso(${j.id},'barril','menos')"><i class="bi bi-dash"></i></button>
-						<button class="btn btn-sm btn-light fw-bold border" onclick="recurso(${j.id},'barril','mas')"><i class="bi bi-plus-lg"></i></button>
-					</div>
-				</div>
-				<div class="">
-					<span class="h4"><img src="../img/espiga2.png" width="35" height="35" id="e_${j.id}"> ${j.espiga}</span><br>
-					<div class="btn-group"> 
-						<button class="btn btn-sm btn-light fw-bold border" onclick="recurso(${j.id},'espiga','menos')"><i class="bi bi-dash"></i></button>
-						<button class="btn btn-sm btn-light fw-bold border" onclick="recurso(${j.id},'espiga','mas')"><i class="bi bi-plus-lg"></i></button>
-					</div>
-				</div>
-			</div>
-			<div class="d-flex flex-row justify-content-between align-items-center gap-2 flex-nowrap">
-				<div class="d-flex gap-2 flex-nowrap align-items-center ms-auto">
-					<button class="btn btn-secondary btn-sm mt-2" onclick="abrirEditarJugador(${j.id})">Edición</button>
-				<button class="btn btn-sm btn-outline-danger mt-2" onclick="eliminarJugador(${j.id})"><i class="bi bi-x-lg"></i></button>
-			</div>
-			</div>
-		</div>
-	</div>
-	 </div>`;
- });
- 
-	 syncSortButton();
-	 actualizarSelectColores();
-}
-
-//pinta las card de los jugadores ordenados por posicion
-function render_sort(keepCurrentOrder = false){
- const c=document.getElementById('players');
- c.innerHTML='';
- 
- let telas = [];
- let barriles = [];
- let espigas = [];
- const ascending = keepCurrentOrder ? !state.sortAscendingNext : state.sortAscendingNext;
-
- //entrega el arreglo ordenado
-	 sortPlayers(state.jugadores, ascending).forEach((j, index) => {
- 
- //guarda la cantidad de recursos de caga jugador
- telas.push({ id: j.id, valor: j['tela'] });
- barriles.push({ id: j.id, valor: j['barril'] });
- espigas.push({ id: j.id, valor: j['espiga'] });
- 
- if(!j)return
-
-	 const posicion = ascending ? state.jugadores.length - index : index + 1;
- 
- c.innerHTML+=`
-	 <div>
-	<div class="card player-card" style="--player-color: ${j.color}">
-		<div class="player-color-bar"></div>
-		<div class="card-body">
-			
-			<div class="d-flex mb-3">
-				<div class="col-9">
-					<div class="d-flex align-items-center gap-2">
-						<span class="material-icons color-dot">account_circle</span>
-						<h3 class="h4 fw-bold mb-0">${j.nombre}</h3>
-					</div>
-					<div class="small-muted">Posición ${posicion}</div>
+					<div class="small-muted">Posición ${posicionTexto}</div>
 				</div>
 				<div class="col-3 text-center"><h1>${j.puntos}</h1></div>
 			</div>
@@ -1235,6 +1107,48 @@ function render_sort(keepCurrentOrder = false){
 		</div>
 	</div>
 	 </div>`;
+}
+
+//pinta las card de los jugadores
+function render(){
+ if(state.sortActive){
+  render_sort(true);
+  return;
+ }
+
+ const c=document.getElementById('players');
+ c.innerHTML='';
+
+ state.jugadores.forEach(j=>{
+ if(!j)return
+	 c.innerHTML += playerCardHtml(j);
+ });
+ 
+	 syncSortButton();
+	 actualizarSelectColores();
+}
+
+//pinta las card de los jugadores ordenados por posicion
+function render_sort(keepCurrentOrder = false){
+ const c=document.getElementById('players');
+ c.innerHTML='';
+ 
+ let telas = [];
+ let barriles = [];
+ let espigas = [];
+ const ascending = keepCurrentOrder ? !state.sortAscendingNext : state.sortAscendingNext;
+
+ //entrega el arreglo ordenado
+	 sortPlayers(state.jugadores, ascending).forEach((j, index) => {
+ if(!j)return
+
+ //guarda la cantidad de recursos de cada jugador
+ telas.push({ id: j.id, valor: j['tela'] });
+ barriles.push({ id: j.id, valor: j['barril'] });
+ espigas.push({ id: j.id, valor: j['espiga'] });
+
+	 const posicion = ascending ? state.jugadores.length - index : index + 1;
+	 c.innerHTML += playerCardHtml(j, posicion);
  });
 
 	if (!keepCurrentOrder) {
@@ -1267,22 +1181,14 @@ window.addEventListener("load", () => {
 	}
 
 	const playerPanel = document.getElementById('playerPanel');
-	const playerPanelIcon = document.getElementById('playerPanelIcon');
 	const playerPanelToggleIcon = document.getElementById('playerPanelToggleIcon');
 
-	if (playerPanel && (playerPanelIcon || playerPanelToggleIcon)) {
+	if (playerPanel && playerPanelToggleIcon) {
 		const syncPlayerPanelIcon = () => {
 			const isOpen = playerPanel.classList.contains('show');
-			if (playerPanelIcon) {
-				playerPanelIcon.className = isOpen
-					? 'bi bi-chevron-up ms-1'
-					: 'bi bi-chevron-down ms-1';
-			}
-			if (playerPanelToggleIcon) {
-				playerPanelToggleIcon.className = isOpen
-					? 'bi bi-chevron-up'
-					: 'bi bi-chevron-down';
-			}
+			playerPanelToggleIcon.className = isOpen
+				? 'bi bi-chevron-up'
+				: 'bi bi-chevron-down';
 		};
 
 		playerPanel.addEventListener('shown.bs.collapse', syncPlayerPanelIcon);
