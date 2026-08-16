@@ -65,6 +65,55 @@
 	gap: .5rem;
 	flex-wrap: wrap;
 }
+.top-action-dropdown {
+	backdrop-filter: blur(3px);
+	border: 1px solid rgba(255,255,255,.55);
+}
+.partida-menu {
+	min-width: 15rem;
+	border: 1px solid rgba(15,23,42,.12);
+	border-radius: .85rem;
+	padding: .45rem;
+	box-shadow: 0 14px 28px rgba(15,23,42,.22);
+}
+.partida-menu .dropdown-item {
+	display: flex;
+	align-items: center;
+	gap: .55rem;
+	border-radius: .6rem;
+	padding: .55rem .65rem;
+	font-weight: 500;
+}
+.partida-menu .dropdown-item i {
+	font-size: 1rem;
+	color: #1e3a8a;
+}
+.partida-menu .dropdown-item:hover,
+.partida-menu .dropdown-item:focus {
+	background: rgba(30,58,138,.08);
+	color: #0f172a;
+}
+.partida-menu .dropdown-item:active {
+	background: rgba(30,58,138,.14);
+	color: #0f172a;
+}
+.toast-center-screen {
+	position: fixed;
+	top: 1.5rem;
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: 1090;
+	padding: .75rem;
+}
+#estadoToast {
+	min-width: min(92vw, 28rem);
+	border: 2px solid #000 !important;
+	border-radius: .85rem;
+	box-shadow: 0 14px 30px rgba(0,0,0,.3);
+}
+#estadoToast .toast-body {
+	padding-top: 1rem;
+}
 .player-color-bar {
 	height: 12px;
 	background: var(--player-color);
@@ -233,7 +282,7 @@
 	<section class="hero d-flex bg-image2 hero-panel mb-3">
 		<div class="w-100 d-flex flex-column">
 			<div class="d-flex hero-header pb-3">
-				<img src="../img/carcassonne_logo2.png" alt="Carcassonne" class="hero-logo">
+				<a href="../inicio.html"><img src="../img/carcassonne_logo2.png" alt="Carcassonne" class="hero-logo"></a>
 				<h1 class="hero-title"><span class="subtitulo">Tablero de puntuación</span></h1>
 			</div>
 			<div class="d-flex top-action-group hero-actions">
@@ -248,19 +297,19 @@
 				<button class="btn btn-light shadow-lg top-action-button" data-bs-toggle="collapse" data-bs-target="#tempoPanel" aria-label="Apúrele">
 					<i class="bi bi-stopwatch fs-5"></i> <span class="top-action-label">Apúrele</span>
 				</button>
-				<button class="btn btn-light shadow-lg top-action-button" onclick="verMapa()" aria-label="Avance">
+				<button class="btn btn-light shadow-lg top-action-button" onclick="window.location.href='avance.html'" aria-label="Avance">
 					<i class="bi bi-pin-map fs-5"></i> <span class="top-action-label">Avance</span>
 				</button>
 				<button class="btn btn-light shadow-lg top-action-button" data-bs-toggle="collapse" data-bs-target="#logPanel" aria-label="Log">
 					<i class="bi bi-card-list fs-5"></i> <span class="top-action-label">Log</span>
 				</button>
 				<div class="btn-group" role="group">
-					<button type="button" class="btn btn btn-light dropdown-toggle top-action-dropdown" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Partida">
+					<button type="button" class="btn btn-light shadow-lg dropdown-toggle top-action-dropdown" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Partida">
 						<i class="bi bi-file-earmark-check fs-5"></i> <span class="top-action-label">Partida</span>
 					</button>
-					<ul class="dropdown-menu dropdown-menu-end">
-						<li><a class="dropdown-item" href="javascript:guardarPartida();">Guardar partida</a></li>
-						<li><a class="dropdown-item" href="javascript:cargarPartida();">Cargar partida</a></li>
+					<ul class="dropdown-menu dropdown-menu-end partida-menu">
+						<li><a class="dropdown-item" href="javascript:guardarPartida();"><i class="bi bi-download"></i> Guardar partida</a></li>
+						<li><a class="dropdown-item" href="javascript:cargarPartida();"><i class="bi bi-upload"></i> Cargar partida</a></li>
 					</ul>
 				</div>
 			</div>
@@ -365,14 +414,69 @@
 	</div>
 </div>
 
+<div class="modal fade" id="editarJugadorModal" tabindex="-1" aria-labelledby="editarJugadorModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-dialog-centered">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="editarJugadorModalLabel">Editar jugador</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+			</div>
+			<div class="modal-body">
+				<div class="mb-3">
+					<label for="modalEditNombreJugador" class="form-label">Nombre</label>
+					<input type="text" class="form-control" id="modalEditNombreJugador">
+				</div>
+				<div class="mb-2">
+					<label for="modalEditColorJugador" class="form-label">Color</label>
+					<select class="form-select" id="modalEditColorJugador"></select>
+				</div>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+				<button type="button" class="btn btn-success" onclick="confirmarEditarJugador()">Guardar cambios</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" id="cargarPartidaModal" tabindex="-1" aria-labelledby="cargarPartidaModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-dialog-centered">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="cargarPartidaModalLabel">Cargar partida</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+			</div>
+			<div class="modal-body">
+				La partida actual será reemplazada. ¿Desea continuar?
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+				<button type="button" class="btn btn-primary" onclick="confirmarCargarPartida()">Sí, cargar partida</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="toast-container toast-center-screen">
+	<div id="estadoToast" class="toast align-items-center text-bg-success" role="status" aria-live="polite" aria-atomic="true">
+		<div class="d-flex">
+			<div class="toast-body">
+				<div id="estadoToastTitulo" class="fw-semibold">Partida</div>
+				<div id="estadoToastMensaje" class="small">Operación completada.</div>
+			</div>
+			<button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+		</div>
+	</div>
+</div>
+
 <script>
 const COLORES = [
-    { valor: "#FAFAF9", nombre: "⚪ Blanco" },
-    { valor: "#D6D3D1", nombre: "🔘 Gris" },
     { valor: "#000000", nombre: "⚫ Negro" },
     { valor: "#FFDF20", nombre: "🟡 Amarillo" },
     { valor: "#FE9A37", nombre: "🟠 Naranja" },
     { valor: "#894B0A", nombre: "🟤 Café" },
+    { valor: "#FAFAF9", nombre: "⚪ Blanco" },
+    { valor: "#D6D3D1", nombre: "🔘 Gris" },
     { valor: "#155DFC", nombre: "🔵 Azul" },
     { valor: "#2AA63E", nombre: "🟢 Verde" },
     { valor: "#A300A3", nombre: "🟣 Morado" },
@@ -381,9 +485,11 @@ const COLORES = [
 	{ valor: "#FF00FF", nombre: "🩷 Fucsia" }
 ];
 
-//crea la lista de colores,
-function generarOpcionesColor(colorSeleccionado = "") {
-    return COLORES.map(c => `
+//crea la lista de colores, excluyendo los ya tomados salvo el actualmente seleccionado
+function generarOpcionesColor(colorSeleccionado = "", excluidos = []) {
+    return COLORES
+        .filter(c => c.valor === colorSeleccionado || !excluidos.includes(c.valor))
+        .map(c => `
         <option
             value="${c.valor}"
             ${c.valor === colorSeleccionado ? "selected" : ""}
@@ -391,17 +497,42 @@ function generarOpcionesColor(colorSeleccionado = "") {
             ${c.nombre}
         </option>
     `).join("");
+}
 
+function actualizarSelectColores() {
+    const el = document.getElementById("colorJugador");
+    if (!el) return;
+    const tomados = state.jugadores.map(j => j.color);
+    el.innerHTML = generarOpcionesColor("", tomados);
+}
+
+function mostrarToast(titulo, mensaje, tipo = 'text-bg-success') {
+	const toastEl = document.getElementById('estadoToast');
+	if (!toastEl) return;
+
+	toastEl.classList.remove('text-bg-success', 'text-bg-danger', 'text-bg-primary');
+	toastEl.classList.add(tipo);
+
+	const tituloEl = document.getElementById('estadoToastTitulo');
+	const mensajeEl = document.getElementById('estadoToastMensaje');
+	if (tituloEl) tituloEl.textContent = titulo;
+	if (mensajeEl) mensajeEl.innerHTML = mensaje;
+
+	bootstrap.Toast.getOrCreateInstance(toastEl, { delay: 4500 }).show();
 }
 
 document.getElementById("colorJugador").innerHTML = generarOpcionesColor();
 </script>
 <script>
 const STORAGE_KEY = 'partidaMesa';
+const OPEN_PICKER_ID = 'carcassonne-partida-open';
+const SAVE_PICKER_ID = 'carcassonne-partida-save';
 const state={jugadores:[],historial:[],undoStack:[],fileHandle:null,sortAscendingNext:false,sortActive:false};
 let timerInterval=null;
 let remaining=25;
 let pendingDeletePlayerId=null;
+let pendingEditPlayerId=null;
+let lastPickerHandle=null;
 
 //agrega un nuevo jugador a la partida
 function agregarJugador(){
@@ -486,26 +617,54 @@ function confirmarEliminarJugador(){
  }
 }
 
-//edita los datos de un jugador (nombre y color)
-function editarJugador2(id){
+//abre modal de edicion de jugador
+function abrirEditarJugador(id){
  const j=state.jugadores.find(x=>x.id===id);
- 
- const nombre=document.getElementById('editNombreJugador_'+id).value;
- if(!nombre) return;
- 
- const color=document.getElementById('editColorJugador_'+id).value;
- if(!color) return;
+ if(!j) return;
+
+ pendingEditPlayerId = id;
+
+ const nombreInput = document.getElementById('modalEditNombreJugador');
+ const colorSelect = document.getElementById('modalEditColorJugador');
+ nombreInput.value = j.nombre;
+ colorSelect.innerHTML = generarOpcionesColor(j.color, state.jugadores.filter(x=>x.id!==j.id).map(x=>x.color));
+
+ const modalEl = document.getElementById('editarJugadorModal');
+ if(!modalEl) return;
+ const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+ modal.show();
+}
+
+//confirma edicion de jugador
+function confirmarEditarJugador(){
+ if(pendingEditPlayerId==null) return;
+
+ const id = pendingEditPlayerId;
+ const j=state.jugadores.find(x=>x.id===id);
+ if(!j) return;
+
+ const nombre=document.getElementById('modalEditNombreJugador').value.trim();
+ if(!nombre) return alert('Nombre requerido');
+
+ const color=document.getElementById('modalEditColorJugador').value;
+ if(!color) return alert('Color requerido');
 
  if(state.jugadores.some(x=>x.id!==id && x.nombre.trim().toLowerCase() === nombre.toLowerCase().trim())){
 	return alert('Nombre repetido');
  }
- 
+
  if(state.jugadores.some(x=>x.id!==id && x.color.trim() === color.trim())){
 	return alert('Color repetido');
  }
 
  j.nombre=nombre;
  j.color=color;
+
+ const modalEl = document.getElementById('editarJugadorModal');
+ const modal = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
+ if(modal){
+	modal.hide();
+ }
 
  saveLocal();
  render();
@@ -679,18 +838,35 @@ async function guardarPartida(){
   try {
     if (window.showSaveFilePicker) {
       if (!state.fileHandle) {
-        state.fileHandle = await window.showSaveFilePicker({
+				const saveOptions = {
+		  id: SAVE_PICKER_ID,
           suggestedName: "partida.json",
           types: [{
             description: "JSON file",
             accept: { "application/json": [".json"] }
           }]
-        });
+		};
+
+		if (lastPickerHandle) {
+			saveOptions.startIn = lastPickerHandle;
+		}
+
+		try {
+			state.fileHandle = await window.showSaveFilePicker(saveOptions);
+		} catch (error) {
+			if (error.name === "TypeError") {
+				const { startIn, ...fallbackOptions } = saveOptions;
+				state.fileHandle = await window.showSaveFilePicker(fallbackOptions);
+			} else {
+				throw error;
+			}
+		}
       }
       if (state.fileHandle.createWritable) {
         const writable = await state.fileHandle.createWritable();
         await writable.write(data);
         await writable.close();
+		lastPickerHandle = state.fileHandle;
         console.log("Guardado con File System Access API");
       } else {
         // fallback si createWritable no existe
@@ -716,50 +892,86 @@ async function guardarPartida(){
 }
 
 //carga la partida de datos desde un archivo json previamente generado.
-async function cargarPartida() {
-	if(state.jugadores.length > 0 &&
-		!confirm("La partida actual será reemplazada. ¿Desea continuar?")){
+function cargarPartida() {
+	if (state.jugadores.length > 0) {
+		const modalEl = document.getElementById('cargarPartidaModal');
+		if (!modalEl) return;
+		const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+		modal.show();
 		return;
 	}
 
-    try {
-        let file;
+	ejecutarCargaPartida();
+}
 
-        // Chrome / Edge modernos
-        if (window.showOpenFilePicker) {
-            const [handle] = await window.showOpenFilePicker({
-                multiple: false,
-                types: [{
-                    description: "Archivo de partida",
-                    accept: {
-                        "application/json": [".json"]
-                    }
-                }]
-            });
-            file = await handle.getFile();
-        } else {
+async function confirmarCargarPartida() {
+	const modalEl = document.getElementById('cargarPartidaModal');
+	const modal = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
+	if (modal) {
+		modal.hide();
+	}
 
-            // Fallback para otros navegadores
-            const input = document.createElement("input");
-            input.type = "file";
-            input.accept = ".json";
+	await ejecutarCargaPartida();
+}
 
-            input.onchange = async (e) => {
-                const archivo = e.target.files[0];
-                if (!archivo) return;
-                await procesarArchivoPartida(archivo);
-            };
+async function ejecutarCargaPartida() {
+	try {
+		let file;
 
-            input.click();
-            return;
-        }
-        await procesarArchivoPartida(file);
-    } catch (error) {
-        if (error.name !== "AbortError") {
-            console.error(error);
-            alert("No fue posible cargar la partida.");
-        }
-    }
+		// Chrome / Edge modernos
+		if (window.showOpenFilePicker) {
+			const openOptions = {
+				id: OPEN_PICKER_ID,
+				multiple: false,
+				types: [{
+					description: "Archivo de partida",
+					accept: {
+						"application/json": [".json"]
+					}
+				}]
+			};
+
+			if (lastPickerHandle || state.fileHandle) {
+				openOptions.startIn = lastPickerHandle || state.fileHandle;
+			}
+
+			let handle;
+			try {
+				[handle] = await window.showOpenFilePicker(openOptions);
+			} catch (error) {
+				if (error.name === "TypeError") {
+					const { startIn, ...fallbackOptions } = openOptions;
+					[handle] = await window.showOpenFilePicker(fallbackOptions);
+				} else {
+					throw error;
+				}
+			}
+
+			lastPickerHandle = handle;
+			file = await handle.getFile();
+		} else {
+
+			// Fallback para otros navegadores
+			const input = document.createElement("input");
+			input.type = "file";
+			input.accept = ".json";
+
+			input.onchange = async (e) => {
+				const archivo = e.target.files[0];
+				if (!archivo) return;
+				await procesarArchivoPartida(archivo);
+			};
+
+			input.click();
+			return;
+		}
+		await procesarArchivoPartida(file);
+	} catch (error) {
+		if (error.name !== "AbortError") {
+			console.error(error);
+			mostrarToast("Error", "No fue posible cargar la partida.", "text-bg-danger");
+		}
+	}
 }
 async function procesarArchivoPartida(file) {
 
@@ -789,11 +1001,11 @@ async function procesarArchivoPartida(file) {
     render();
     renderLog();
 
-    alert(
-        `Partida cargada correctamente.\n\n` +
-        `Jugadores: ${state.jugadores.length}\n` +
-        `Eventos: ${state.historial.length}`
-    );
+	mostrarToast(
+		"Partida cargada",
+		`Jugadores: ${state.jugadores.length}<br>Eventos: ${state.historial.length}`,
+		"text-bg-success"
+	);
 }
 
 //organiza la lista de jugadores de mayor a menor puntuacion
@@ -931,26 +1143,9 @@ function render(){
 			</div>
 			<div class="d-flex flex-row justify-content-between align-items-center gap-2 flex-nowrap">
 				<div class="d-flex gap-2 flex-nowrap align-items-center ms-auto">
-					<div class="dropup">
-					  <button class="btn btn-secondary btn-sm mt-2 dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside">
-						Edición
-					  </button>
-					  <form class="dropdown-menu p-2">
-						<div class="mb-2">
-						  <span class="fw-normal">Nombre:</span>
-						  <input type="input" class="form-control" id="editNombreJugador_${j.id}" value="${j.nombre}">
-						</div>
-						<div class="mb-2">
-						  <span class="fw-normal">Color:</span>
-						  <select class="form-select" id="editColorJugador_${j.id}">
-							${generarOpcionesColor(j.color)}
-						  </select>
-						</div>
-						<button type="submit" class="btn btn-success btn-sm" onclick="editarJugador2(${j.id})">Editar</button>						
-					  </form>
-					</div>
-					<button class="btn btn-sm btn-outline-danger mt-2" onclick="eliminarJugador(${j.id})"><i class="bi bi-x-lg"></i></button>
-				</div>
+					<button class="btn btn-secondary btn-sm mt-2" onclick="abrirEditarJugador(${j.id})">Edición</button>
+				<button class="btn btn-sm btn-outline-danger mt-2" onclick="eliminarJugador(${j.id})"><i class="bi bi-x-lg"></i></button>
+			</div>
 			</div>
 		</div>
 	</div>
@@ -958,6 +1153,7 @@ function render(){
  });
  
 	 syncSortButton();
+	 actualizarSelectColores();
 }
 
 //pinta las card de los jugadores ordenados por posicion
@@ -1032,25 +1228,7 @@ function render_sort(keepCurrentOrder = false){
 			</div>
 			<div class="d-flex flex-row justify-content-between align-items-center gap-2 flex-nowrap">
 				<div class="d-flex gap-2 flex-nowrap align-items-center ms-auto">
-					<div class="dropup">
-					  <button class="btn btn-secondary btn-sm mt-2 dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside">
-						Edición
-					  </button>
-					  <form class="dropdown-menu p-2">
-						<div class="mb-2">
-						  <span class="fw-normal">Nombre:</span>
-						  <input type="input" class="form-control" id="editNombreJugador_${j.id}" value="${j.nombre}">
-						</div>
-						<div class="mb-2">
-						  <span class="fw-normal">Color:</span>
-						  <select class="form-select" id="editColorJugador_${j.id}">
-							<option selected disabled>Color...</option>
-							${generarOpcionesColor(j.color)}
-						  </select>
-						</div>
-						<button type="submit" class="btn btn-success btn-sm" onclick="editarJugador2(${j.id})">Editar</button>						
-					  </form>
-					</div>
+					<button class="btn btn-secondary btn-sm mt-2" onclick="abrirEditarJugador(${j.id})">Edición</button>
 					<button class="btn btn-sm btn-outline-danger mt-2" onclick="eliminarJugador(${j.id})"><i class="bi bi-x-lg"></i></button>
 				</div>
 			</div>
@@ -1120,6 +1298,13 @@ window.addEventListener("load", () => {
 			if (nombreEl) {
 				nombreEl.textContent = '';
 			}
+		});
+	}
+
+	const editarJugadorModal = document.getElementById('editarJugadorModal');
+	if (editarJugadorModal) {
+		editarJugadorModal.addEventListener('hidden.bs.modal', () => {
+			pendingEditPlayerId = null;
 		});
 	}
 });

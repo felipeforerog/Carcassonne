@@ -35,9 +35,9 @@
         }
 
         .cards-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: .75rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: .5rem;
         }
 
         .image-section {
@@ -57,6 +57,58 @@
             object-fit: contain;
         }
 
+        .ficha-jugador {
+            position: absolute;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 3px solid #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,.45);
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            animation: pulsoFicha 1.6s ease-in-out infinite;
+        }
+        @keyframes pulsoFicha {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50%       { transform: translate(-50%, -50%) scale(1.2); }
+        }
+        .player-card-avance {
+            border: 1px solid rgba(15,23,42,.12);
+            border-radius: 2rem;
+            overflow: hidden;
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(15,23,42,.07);
+            display: flex;
+            align-items: center;
+            gap: .4rem;
+            padding: .3rem .75rem .3rem .4rem;
+            white-space: nowrap;
+        }
+        .player-card-color-bar {
+            display: none;
+        }
+        .player-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--color);
+            border: 1px solid rgba(0,0,0,.15);
+            flex-shrink: 0;
+        }
+        .player-name {
+            flex: 1;
+            font-weight: 600;
+            font-size: .9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .player-pts {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1e3a8a;
+        }
+        /* dev helper - hidden by default */
         .casilla-dev {
             position: absolute;
             width: 26px;
@@ -72,7 +124,7 @@
             justify-content: center;
             transform: translate(-50%, -50%);
             pointer-events: none;
-            z-index: 10;
+            z-index: 20;
             line-height: 1;
         }
 
@@ -91,6 +143,11 @@
     <div class="container-fluid py-3 px-3 px-md-4 page-shell">
         <div class="avance-layout">
             <section class="cards-section">
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="window.location.href='puntos.html'">
+                        <i class="bi bi-arrow-left"></i> Volver
+                    </button>
+                </div>
                 <div class="cards-grid" id="cardsContainer"></div>
             </section>
             <section class="image-section">
@@ -116,57 +173,105 @@
             {x:1052,y:514},{x:1163,y:510},{x:1266,y:492},{x:1373,y:536},{x:1360,y:655}
         ];
 
+        const STORAGE_KEY = 'partidaMesa';
+
+        const OFFSETS = [
+            {x:0,y:0},{x:20,y:0},{x:-20,y:0},{x:0,y:20},{x:0,y:-20},
+            {x:20,y:20},{x:20,y:-20},{x:-20,y:20},{x:-20,y:-20}
+        ];
+
+        function obtenerJugadores() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                return raw ? (JSON.parse(raw)?.jugadores ?? []) : [];
+            } catch(e) { return []; }
+        }
+
+        function obtenerCasilla(puntos) {
+            if (puntos < 0) return 0;
+            return puntos % POSICIONES.length;
+        }
+
         function ajustarMapaMaximo() {
             const mapa = document.getElementById('mapa');
             const contenedor = document.querySelector('.image-section');
             if (!mapa || !contenedor || !mapa.naturalWidth) return;
 
-            const contW = contenedor.clientWidth;
-            const contH = contenedor.clientHeight;
-            const escala = Math.min(contW / NAT_H, contH / NAT_W);
-
+            const escala = Math.min(contenedor.clientWidth / NAT_H, contenedor.clientHeight / NAT_W);
             mapa.style.width  = `${NAT_W * escala}px`;
             mapa.style.height = `${NAT_H * escala}px`;
 
-            renderizarCasillasDev();
+            renderizarFichas();
         }
 
-        // Convierte coordenadas originales (sin rotar) a posicion en pantalla dentro de image-section
+        // Convierte coordenadas originales (sin rotar) a posicion dentro de image-section
         function coordAPantalla(px, py) {
-            const mapa = document.getElementById('mapa');
-            const contenedor = document.querySelector('.image-section');
-            const rMapa = mapa.getBoundingClientRect();
-            const rCont = contenedor.getBoundingClientRect();
-
-            // getBoundingClientRect incluye el CSS rotate(-90deg):
-            //   rMapa.width  = NAT_H * escala
-            //   rMapa.height = NAT_W * escala
-            // Mapeo 90° CCW: punto (px,py) en imagen original →
-            //   x_visual = 1 - py / NAT_H
-            //   y_visual = px / NAT_W
+            const rMapa = document.getElementById('mapa').getBoundingClientRect();
+            const rCont = document.querySelector('.image-section').getBoundingClientRect();
             const x = (rMapa.left - rCont.left) + (1 - py / NAT_H) * rMapa.width;
             const y = (rMapa.top  - rCont.top)  + (px / NAT_W) * rMapa.height;
             return { x, y };
         }
 
-        // Modo desarrollador: pinta los 50 círculos numerados
-        function renderizarCasillasDev() {
+        function renderizarFichas() {
             const contenedor = document.querySelector('.image-section');
-            contenedor.querySelectorAll('.casilla-dev').forEach(el => el.remove());
+            contenedor.querySelectorAll('.ficha-jugador').forEach(el => el.remove());
 
-            POSICIONES.forEach((pos, i) => {
-                const { x, y } = coordAPantalla(pos.x, pos.y);
+            const jugadores = obtenerJugadores();
+            const casillasEnUso = [];
+
+            jugadores.forEach(j => {
+                const casilla = obtenerCasilla(j.puntos);
+                casillasEnUso.push(casilla);
+                const indice = casillasEnUso.filter(c => c === casilla).length - 1;
+                const { x, y } = coordAPantalla(POSICIONES[casilla].x, POSICIONES[casilla].y);
+                const off = OFFSETS[Math.min(indice, OFFSETS.length - 1)];
+
                 const div = document.createElement('div');
-                div.className = 'casilla-dev';
-                div.textContent = i;
-                div.style.left = `${x}px`;
-                div.style.top  = `${y}px`;
+                div.className = 'ficha-jugador';
+                div.title = `${j.nombre}: ${j.puntos} pts`;
+                div.style.backgroundColor = j.color;
+                div.style.left = `${x + off.x}px`;
+                div.style.top  = `${y + off.y}px`;
                 contenedor.appendChild(div);
             });
         }
 
-        window.addEventListener('load', ajustarMapaMaximo);
+        function renderizarTarjetas() {
+            const container = document.getElementById('cardsContainer');
+            container.innerHTML = '';
+            const jugadores = obtenerJugadores();
+
+            if (!jugadores.length) {
+                container.innerHTML = '<p class="text-muted small mb-0 ps-1">Sin jugadores en la partida.</p>';
+                return;
+            }
+
+            [...jugadores].sort((a, b) => b.puntos - a.puntos).forEach(j => {
+                const card = document.createElement('div');
+                card.className = 'player-card-avance';
+                card.style.setProperty('--color', j.color);
+                card.innerHTML = `
+                    <span class="player-dot"></span>
+                    <span class="player-name">${j.nombre}</span>
+                    <span class="player-pts">${j.puntos}</span>`;
+                container.appendChild(card);
+            });
+        }
+
+        function render() {
+            renderizarTarjetas();
+            renderizarFichas();
+        }
+
+        window.addEventListener('load', () => {
+            const mapa = document.getElementById('mapa');
+            if (mapa.complete) { ajustarMapaMaximo(); render(); }
+            else mapa.addEventListener('load', () => { ajustarMapaMaximo(); render(); });
+        });
         window.addEventListener('resize', ajustarMapaMaximo);
+        // Refresca cuando puntos.html actualiza localStorage desde otra pestaña
+        window.addEventListener('storage', e => { if (e.key === STORAGE_KEY) render(); });
     </script>
 </body>
 </html>
