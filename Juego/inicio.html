@@ -8,19 +8,28 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
 
     <style>
+    *, *::before, *::after {
+		box-sizing: border-box;
+	}
     html, body {
 		height: 100%;
 		margin: 0;
+		padding: 0;
 		background-color: #f5f5f5;
 	}
 	.page-container {
+		min-height: 100svh;
 		height: 100vh;
-		padding: 40px;
+		padding: clamp(12px, 3vw, 40px);
+		display: flex;
+		align-items: stretch;
+		justify-content: center;
 	}
 	.game-cover {
 		position: relative;
 		width: 100%;
 		height: 100%;
+		max-width: 1600px;
 		overflow: hidden;
 		border-radius: 20px;
 		box-shadow: 0 8px 25px rgba(0,0,0,.15);
@@ -33,21 +42,38 @@
 	}
 	.title-image {
 		position: absolute;
-		top: 30px;
-		left: 30px;
-		width: 320px;
+		top: clamp(16px, 3vw, 30px);
+		left: clamp(16px, 3vw, 30px);
+		width: clamp(180px, 28vw, 320px);
 		max-width: 40%;
 		z-index: 10;
 	}
 	.hotspot {
 		position: absolute;
-		width: 2.1%;
-		height: 5.1%;
-		left: 36.45%;
-		top: 48.1%;
-		border-radius: 12px;
+		width: clamp(76px, 7vw, 130px);
+		height: clamp(76px, 7vw, 130px);
+		right: clamp(16px, 2.5vw, 32px);
+		bottom: clamp(16px, 2.5vw, 32px);
+		border-radius: 18px;
 		animation: heartbeat 3s infinite;
 		cursor: pointer;
+		z-index: 20;
+		transition: transform .2s ease, filter .2s ease;
+		filter: drop-shadow(0 0 14px rgba(255,255,255,.55)) drop-shadow(0 0 24px rgba(255,215,0,.35));
+	}
+	.hotspot-label {
+		position: absolute;
+		top: -1.15em;
+		left: 50%;
+		transform: translateX(-50%);
+		font-size: clamp(0.85rem, 1.25vw, 1.2rem);
+		font-weight: 800;
+		letter-spacing: 0.14em;
+		color: #000;
+		text-shadow: 0 1px 0 rgba(255,255,255,.9), 0 0 10px rgba(255,255,255,.65);
+		pointer-events: none;
+		user-select: none;
+		z-index: 2;
 	}
 	.hotspot::before {
 		content: "";
@@ -56,11 +82,17 @@
 
 		border-radius: inherit;
 
-		background: rgba(255,255,255,.12);
+		background: rgba(255,255,255,.18);
 
 		box-shadow:
-			0 0 20px rgba(255,255,255,.5),
-			0 0 40px rgba(255,255,255,.3);
+			0 0 24px rgba(255,255,255,.6),
+			0 0 48px rgba(255,215,0,.35);
+	}
+	.hotspot:hover,
+	.hotspot:focus-visible {
+		transform: scale(1.06);
+		filter: drop-shadow(0 0 18px rgba(255,255,255,.8)) drop-shadow(0 0 34px rgba(255,215,0,.55));
+		outline: none;
 	}
 	@keyframes heartbeat {
 		0% { transform: scale(1); }
@@ -75,7 +107,34 @@
 		height:100%;
 		background-image:url("img/escudo2.png");
 		background-size:cover;
+		background-position:center;
 		animation:heartbeat 3s infinite;
+	}
+	@media (max-width: 768px) {
+		.page-container {
+			padding: 10px;
+		}
+		.game-cover {
+			border-radius: 14px;
+		}
+		.title-image {
+			width: clamp(140px, 45vw, 240px);
+			max-width: 55%;
+		}
+		.hotspot {
+			width: clamp(70px, 16vw, 108px);
+			height: clamp(70px, 16vw, 108px);
+			right: 14px;
+			bottom: 14px;
+		}
+	}
+	@media (max-width: 480px) {
+		.title-image {
+			top: 12px;
+			left: 12px;
+			width: 42vw;
+			max-width: none;
+		}
 	}
     </style>
 </head>
@@ -88,6 +147,7 @@
             <img src="img/carcassonne_logo1.png" alt="Título del juego" class="title-image">
 			<!-- Escudo pulsante -->
 			<a href="html/puntos.html" class="hotspot">
+				<span class="hotspot-label">START</span>
 				<div class="pulse-tile"></div>
 			</a>
         </div>
