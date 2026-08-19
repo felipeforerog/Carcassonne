@@ -683,8 +683,6 @@ function accionJugador(id,v){
 function puntos(id,v){
  const j=state.jugadores.find(x=>x.id===id);
  j.puntos += v;
- state.sortActive = true;
- state.sortAscendingNext = true;
  registrar(j, "PUNTOS", v);
  render();
 }
