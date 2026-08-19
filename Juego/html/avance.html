@@ -115,6 +115,44 @@
             color: #64748b;
         }
 
+        #micBtn.escuchando {
+            background-color: #dc3545;
+            border-color: #dc3545;
+            color: #fff;
+            animation: pulsoMic 1s ease-in-out infinite;
+        }
+        @keyframes pulsoMic {
+            0%, 100% { transform: scale(1); }
+            50%      { transform: scale(1.15); }
+        }
+
+        .voz-indicador {
+            display: flex;
+            align-items: flex-end;
+            gap: 3px;
+            height: 22px;
+        }
+        .voz-indicador span {
+            display: inline-block;
+            width: 4px;
+            background: #dc3545;
+            border-radius: 2px;
+            animation: ondaVoz .9s ease-in-out infinite;
+        }
+        .voz-indicador span:nth-child(1) { animation-delay: 0s; }
+        .voz-indicador span:nth-child(2) { animation-delay: .15s; }
+        .voz-indicador span:nth-child(3) { animation-delay: .3s; }
+        .voz-indicador span:nth-child(4) { animation-delay: .45s; }
+        .voz-indicador span:nth-child(5) { animation-delay: .6s; }
+        @keyframes ondaVoz {
+            0%, 100% { height: 6px; }
+            50%      { height: 22px; }
+        }
+
+        .voz-ejemplo {
+            font-size: .8rem;
+        }
+
         @media (max-width: 768px) {
             .page-shell {
                 padding: .75rem !important;
@@ -130,10 +168,21 @@
     <div class="container-fluid py-3 px-3 px-md-4 page-shell">
         <div class="avance-layout">
             <section class="cards-section">
-                <div class="d-flex align-items-center gap-3 mb-2">
-                    <button class="btn btn-sm btn-outline-secondary" onclick="window.location.href='puntos.html'">
-                        <i class="bi bi-arrow-left"></i> Volver
-                    </button>
+                <div class="mb-2">
+                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="window.location.href='puntos.html'">
+                            <i class="bi bi-arrow-left"></i> Volver
+                        </button>
+                        <button id="micBtn" class="btn btn-sm btn-outline-secondary" onclick="iniciarComandoVoz()" title="Comando de voz">
+                            <i class="bi bi-mic-fill"></i>
+                        </button>
+                        <div id="vozIndicador" class="voz-indicador d-none" aria-hidden="true">
+                            <span></span><span></span><span></span><span></span><span></span>
+                        </div>
+                    </div>
+                    <small class="text-muted voz-ejemplo d-block mt-1">
+                        Ejemplo: "Súmale 5 puntos a Felipe, ok" / "Quítale 3 puntos a María, ok"
+                    </small>
                 </div>
                 <div class="cards-grid" id="cardsContainer"></div>
             </section>
@@ -177,6 +226,219 @@
         function obtenerCasilla(puntos) {
             if (puntos < 0) return 0;
             return puntos % POSICIONES.length;
+        }
+
+        // ---- Comando de voz ----
+
+        const NUMEROS_TEXTO = {
+            uno: 1, una: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5,
+            seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10,
+            once: 11, doce: 12, trece: 13, catorce: 14, quince: 15,
+            dieciseis: 16, diecisiete: 17, dieciocho: 18, diecinueve: 19, veinte: 20
+        };
+
+        const PALABRAS_RESTA = ['quita', 'resta', 'menos'];
+        const MIC_PERMISO_KEY = 'vozPermisoConcedido';
+
+        let recognition = null;
+        let escuchando = false;
+
+        // revisa si el microfono ya fue autorizado antes, para no volver a preguntar
+        async function tienePermisoMicrofono() {
+            if (localStorage.getItem(MIC_PERMISO_KEY) === 'true') {
+                return true;
+            }
+
+            if (!navigator.permissions || !navigator.permissions.query) {
+                return null; // no se puede saber de antemano, se intenta directo
+            }
+
+            try {
+                const estado = await navigator.permissions.query({ name: 'microphone' });
+                if (estado.state === 'granted') {
+                    localStorage.setItem(MIC_PERMISO_KEY, 'true');
+                    return true;
+                }
+                if (estado.state === 'denied') {
+                    return false;
+                }
+                return null; // 'prompt': se pedira al iniciar el reconocimiento
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // pasa el texto a minusculas y le quita las tildes, para comparar sin importar acentos
+        function normalizarTexto(texto) {
+            return texto
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[̀-ͯ]/g, '')
+                .trim();
+        }
+
+        // revisa si el texto transcrito ya incluye la palabra "ok"
+        function contienePalabraOk(texto) {
+            return /\bok\b/.test(normalizarTexto(texto));
+        }
+
+        // extrae el numero de puntos del texto, ya sea en digitos ("5") o en palabras ("cinco")
+        function extraerNumero(texto) {
+            const textoNormalizado = normalizarTexto(texto);
+
+            const coincidenciaDigitos = textoNormalizado.match(/\d+/);
+            if (coincidenciaDigitos) {
+                return parseInt(coincidenciaDigitos[0], 10);
+            }
+
+            const palabras = textoNormalizado.split(/\s+/);
+            for (const palabra of palabras) {
+                if (NUMEROS_TEXTO[palabra] !== undefined) {
+                    return NUMEROS_TEXTO[palabra];
+                }
+            }
+
+            return null;
+        }
+
+        // busca cual jugador de la partida actual fue mencionado en el texto
+        function extraerJugador(texto, jugadores) {
+            const textoNormalizado = normalizarTexto(texto);
+            return jugadores.find(j => textoNormalizado.includes(normalizarTexto(j.nombre))) || null;
+        }
+
+        // detecta si la frase pide restar puntos en vez de sumar
+        function esResta(texto) {
+            const textoNormalizado = normalizarTexto(texto);
+            return PALABRAS_RESTA.some(palabra => textoNormalizado.includes(palabra));
+        }
+
+        // pinta el boton de microfono y el indicador de ondas segun si esta escuchando o no
+        function actualizarBotonMic() {
+            const boton = document.getElementById('micBtn');
+            if (boton) boton.classList.toggle('escuchando', escuchando);
+
+            const indicador = document.getElementById('vozIndicador');
+            if (indicador) indicador.classList.toggle('d-none', !escuchando);
+        }
+
+        // aplica el cambio de puntos al jugador y lo persiste en localStorage (partidaMesa)
+        function accionJugador(id, valor) {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return;
+
+            const data = JSON.parse(raw);
+            const jugador = (data.jugadores || []).find(j => j.id === id);
+            if (!jugador) return;
+
+            jugador.puntos += valor;
+
+            data.historial = data.historial || [];
+            data.historial.unshift({
+                fecha: new Date().toLocaleTimeString(),
+                jugador: jugador.nombre,
+                tipo: 'PUNTOS',
+                valor
+            });
+
+            data.undoStack = data.undoStack || [];
+            data.undoStack.push({
+                jugadorId: jugador.id,
+                tipo: 'PUNTOS',
+                valor
+            });
+
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+
+            render();
+        }
+
+        // interpreta el texto escuchado y aplica los puntos al jugador correspondiente
+        function procesarComandoVoz(textoOriginal) {
+            console.log('Texto transcrito:', textoOriginal);
+
+            const textoLimpio = textoOriginal.replace(/\bok\b/gi, ' ');
+            const jugadores = obtenerJugadores();
+
+            const jugador = extraerJugador(textoLimpio, jugadores);
+            if (!jugador) {
+                alert(`No se reconoció ningún jugador en el comando.\nTexto escuchado: "${textoOriginal.trim()}"`);
+                return;
+            }
+
+            const numero = extraerNumero(textoLimpio);
+            if (numero === null) {
+                alert(`No se reconoció la cantidad de puntos en el comando.\nTexto escuchado: "${textoOriginal.trim()}"`);
+                return;
+            }
+
+            const valorFinal = esResta(textoLimpio) ? -numero : numero;
+
+            accionJugador(jugador.id, valorFinal);
+        }
+
+        // inicia la escucha del comando de voz para asignar puntos
+        async function iniciarComandoVoz() {
+            const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+            if (!SpeechRecognitionAPI) {
+                alert('El reconocimiento de voz no es compatible con este navegador. Usa Google Chrome o Microsoft Edge.');
+                return;
+            }
+
+            if (escuchando) {
+                recognition.stop();
+                return;
+            }
+
+            const permiso = await tienePermisoMicrofono();
+            if (permiso === false) {
+                alert('El micrófono está bloqueado para esta página. Habilítalo desde la configuración del navegador para usar comandos de voz.');
+                return;
+            }
+
+            recognition = new SpeechRecognitionAPI();
+            recognition.lang = 'es-CO';
+            recognition.continuous = true;
+            recognition.interimResults = true;
+
+            let transcritoAcumulado = '';
+
+            recognition.onstart = () => {
+                escuchando = true;
+                localStorage.setItem(MIC_PERMISO_KEY, 'true'); // si arranca, el permiso ya quedo concedido
+                actualizarBotonMic();
+            };
+
+            recognition.onresult = (evento) => {
+                transcritoAcumulado = '';
+                for (let i = 0; i < evento.results.length; i++) {
+                    transcritoAcumulado += evento.results[i][0].transcript + ' ';
+                }
+
+                if (contienePalabraOk(transcritoAcumulado)) {
+                    recognition.stop();
+                }
+            };
+
+            recognition.onerror = (evento) => {
+                console.error('Error de reconocimiento de voz:', evento.error);
+
+                if (evento.error === 'not-allowed' || evento.error === 'service-not-allowed') {
+                    localStorage.removeItem(MIC_PERMISO_KEY);
+                }
+            };
+
+            recognition.onend = () => {
+                escuchando = false;
+                actualizarBotonMic();
+
+                if (transcritoAcumulado.trim()) {
+                    procesarComandoVoz(transcritoAcumulado);
+                }
+            };
+
+            recognition.start();
         }
 
         const PANTALLA_GRANDE_QUERY = '(min-width: 992px)';
