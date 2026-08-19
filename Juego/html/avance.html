@@ -52,9 +52,12 @@
             position: absolute;
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%) rotate(90deg);
+            transform: translate(-50%, -50%);
             transform-origin: center center;
             object-fit: contain;
+        }
+        #mapa.rotada {
+            transform: translate(-50%, -50%) rotate(90deg);
         }
 
         .ficha-jugador {
@@ -176,24 +179,47 @@
             return puntos % POSICIONES.length;
         }
 
+        const PANTALLA_GRANDE_QUERY = '(min-width: 992px)';
+
+        // En pantallas grandes el mapa se muestra horizontal (sin rotar)
+        function esPantallaGrande() {
+            return window.matchMedia(PANTALLA_GRANDE_QUERY).matches;
+        }
+
         function ajustarMapaMaximo() {
             const mapa = document.getElementById('mapa');
             const contenedor = document.querySelector('.image-section');
             if (!mapa || !contenedor || !mapa.naturalWidth) return;
 
-            const escala = Math.min(contenedor.clientWidth / NAT_H, contenedor.clientHeight / NAT_W);
-            mapa.style.width  = `${NAT_W * escala}px`;
-            mapa.style.height = `${NAT_H * escala}px`;
+            if (esPantallaGrande()) {
+                mapa.classList.remove('rotada');
+                const escala = Math.min(contenedor.clientWidth / NAT_W, contenedor.clientHeight / NAT_H);
+                mapa.style.width  = `${NAT_W * escala}px`;
+                mapa.style.height = `${NAT_H * escala}px`;
+            } else {
+                mapa.classList.add('rotada');
+                const escala = Math.min(contenedor.clientWidth / NAT_H, contenedor.clientHeight / NAT_W);
+                mapa.style.width  = `${NAT_W * escala}px`;
+                mapa.style.height = `${NAT_H * escala}px`;
+            }
 
             renderizarFichas();
         }
 
         // Convierte coordenadas originales (sin rotar) a posicion dentro de image-section
         function coordAPantalla(px, py) {
-            const rMapa = document.getElementById('mapa').getBoundingClientRect();
+            const mapa = document.getElementById('mapa');
+            const rMapa = mapa.getBoundingClientRect();
             const rCont = document.querySelector('.image-section').getBoundingClientRect();
-            const x = (rMapa.left - rCont.left) + (1 - py / NAT_H) * rMapa.width;
-            const y = (rMapa.top  - rCont.top)  + (px / NAT_W) * rMapa.height;
+
+            if (mapa.classList.contains('rotada')) {
+                const x = (rMapa.left - rCont.left) + (1 - py / NAT_H) * rMapa.width;
+                const y = (rMapa.top  - rCont.top)  + (px / NAT_W) * rMapa.height;
+                return { x, y };
+            }
+
+            const x = (rMapa.left - rCont.left) + (px / NAT_W) * rMapa.width;
+            const y = (rMapa.top  - rCont.top)  + (py / NAT_H) * rMapa.height;
             return { x, y };
         }
 
